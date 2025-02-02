@@ -105,7 +105,7 @@ app.post("/get-pairing-code", (req, res) => {
 
 // Website sends pairing code for validation
 app.post("/validate", (req, res) => {
-    const userCode = req.body;
+    const userCode = req.body.user_code;
 
     if (!espPairingCode) {
         return res.json({ status: "error", message: "No ESP32 code received yet" });
