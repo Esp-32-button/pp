@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const app = express();
 const port = 3000;
-const ESP32_IP = 'http://192.168.4.1';
+const ESP32_IP = 'http://192.168.132.56';
 app.use(bodyParser.json());
 app.use(cors());
 
