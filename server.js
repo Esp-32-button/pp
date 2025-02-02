@@ -7,6 +7,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
+const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -130,5 +131,3 @@ app.listen(port, () => {
 });
 
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
