@@ -98,14 +98,14 @@ let espPairingCode = null; // Stores the latest pairing code from ESP32
 
 // ESP32 sends pairing code
 app.post("/get-pairing-code", (req, res) => {
-    espPairingCode = req.body.esp_code;
+    espPairingCode = req.body;
     console.log("Received ESP32 Pairing Code:", espPairingCode);
     res.json({ message: "Pairing code received" });
 });
 
 // Website sends pairing code for validation
 app.post("/validate", (req, res) => {
-    const userCode = req.body.user_code;
+    const userCode = req.body;
 
     if (!espPairingCode) {
         return res.json({ status: "error", message: "No ESP32 code received yet" });
