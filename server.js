@@ -118,11 +118,11 @@ app.post('/wifi', (req, res) => {
 });
 
 
-let espPairingCode = null; // Stores the latest pairing code from ESP32
+let espPairingCode=null; // Stores the latest pairing code from ESP32
 
 // ESP32 sends pairing code
 app.post("/get-pairing-code", (req, res) => {
-    espPairingCode = req.body.pair_code;
+    espPairingCode= req.body.pair_code;
     console.log("Received ESP32 Pairing Code:", espPairingCode);
     res.json({ message: "Pairing code received" });
 });
@@ -190,8 +190,8 @@ app.post('/add-pairing-code', async (req, res) => {
 
     // Create the device JSON object
     const deviceData = {
-        pairingCode: pairingCode,
-        timestamp: new Date().toISOString(),
+        pairingCode: pairingCode
+        
     };
 
     try {
