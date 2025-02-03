@@ -180,6 +180,29 @@ app.get("/servo", (req, res) => {
   res.json({ state: servoState });
 });
 
+app.post('/add-pairing-code', async (req, res) => {
+    const { email, pairingCode } = req.body;
+    
+    // Create a JSON object for the device with the pairing code
+    const deviceData = {
+        pairingCode: pairingCode,
+        timestamp: new Date().toISOString()  // Add a timestamp for when the pairing code was added
+    };
+
+    try {
+        // Update the user's device column with the pairing code
+        await pool.query(
+            'UPDATE users SET device = $1 WHERE email = $2', 
+            [JSON.stringify(deviceData), email]  // Use JSON.stringify to convert the JavaScript object to a JSON string
+        );
+        
+        res.status(200).send({ message: 'Pairing code added successfully' });
+    } catch (err) {
+        console.error('Error adding pairing code:', err);
+        res.status(400).send({ error: 'Failed to add pairing code' });
+    }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
