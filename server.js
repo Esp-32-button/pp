@@ -24,27 +24,38 @@ const pool = new Pool({
 // Function to connect to the database and handle errors
 function connectToDatabase() {
   pool.connect()
-    .then(() => {
+    .then(client => {
       console.log("✅ Connected to Neon PostgreSQL Database");
+      // Optionally handle the client connection here if needed
+      client.release(); // Make sure to release the client back to the pool
     })
     .catch(err => {
       console.error("❌ Database Connection Error:", err);
-      // Optionally, retry the connection after a delay
-      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds
+      // Retry connection after 5 seconds
+      setTimeout(connectToDatabase, 5000);
     });
 }
+
+// Handle pool errors
+pool.on('error', (err, client) => {
+  console.error('PostgreSQL pool error:', err);
+  // Optionally, you can attempt to reconnect or log additional details.
+  // Retrying the connection could be handled here as well if necessary.
+  setTimeout(connectToDatabase, 5000);  // Retry connection if pool error occurs
+});
 
 // Initial connection attempt
 connectToDatabase();
 
-// Handle any connection errors after initial connection
-pool.on('error', (err) => {
-  console.error('PostgreSQL error event:', err);
-  // Optionally, you can log or retry here as well
-  setTimeout(connectToDatabase, 5000);  // Retry connection after 5 seconds if error occurs
+// Handle client-specific errors (this is the main issue)
+pool.on('connect', client => {
+  client.on('error', (err) => {
+    console.error('PostgreSQL client error:', err);
+    // Optionally, you can implement retry logic here if necessary
+  });
 });
 
-// Optionally, you can handle graceful shutdown if needed
+// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM, closing PostgreSQL connection...');
   pool.end();  // Close the pool gracefully
