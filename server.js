@@ -72,33 +72,12 @@ app.post('/wifi', (req, res) => {
         .catch((error) => res.status(500).send({ error: 'Failed to update Wi-Fi credentials' }));
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.post('/validate', async (req, res) => {
-  const { code } = req.body;
-  
-  try {
-    // Make a request to ESP32 to check if the code is valid
-    const response = await axios.get(`${ESP32_IP}/check_code?code=${code}`);
-    
-    if (response.data === "valid") {
-      // If the code is valid, send a JSON response with status 'valid'
-      res.json({ status: 'valid' });
-    } else {
-      // If the code is invalid, send a JSON response with status 'invalid'
-      res.json({ status: 'invalid' });
-    }
-  } catch (error) {
-    res.status(500).send("Error communicating with ESP32");
-  }
-});
 
 let espPairingCode = null; // Stores the latest pairing code from ESP32
 
 // ESP32 sends pairing code
 app.post("/get-pairing-code", (req, res) => {
-    espPairingCode = req.body;
+    espPairingCode = req.body.pair_code;
     console.log("Received ESP32 Pairing Code:", espPairingCode);
     res.json({ message: "Pairing code received" });
 });
