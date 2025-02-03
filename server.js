@@ -12,16 +12,50 @@ const ESP32_IP = 'http://192.168.132.56';
 app.use(bodyParser.json());
 app.use(cors());
 
+
 // Database Connection
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
-pool.connect()
-    .then(() => console.log("✅ Connected to Neon PostgreSQL Database"))
-    .catch(err => console.error("❌ Database Connection Error:", err));
+
+// Function to connect to the database and handle errors
+function connectToDatabase() {
+  pool.connect()
+    .then(() => {
+      console.log("✅ Connected to Neon PostgreSQL Database");
+    })
+    .catch(err => {
+      console.error("❌ Database Connection Error:", err);
+      // Optionally, retry the connection after a delay
+      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds
+    });
+}
+
+// Initial connection attempt
+connectToDatabase();
+
+// Handle any connection errors after initial connection
+pool.on('error', (err) => {
+  console.error('PostgreSQL error event:', err);
+  // Optionally, you can log or retry here as well
+  setTimeout(connectToDatabase, 5000);  // Retry connection after 5 seconds if error occurs
+});
+
+// Optionally, you can handle graceful shutdown if needed
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, closing PostgreSQL connection...');
+  pool.end();  // Close the pool gracefully
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, closing PostgreSQL connection...');
+  pool.end();  // Close the pool gracefully
+  process.exit(0);
+});
 
 const SECRET_KEY = '/cTFigjrKOOlRA7S1bI1Pxk809ZAN4gi5FJ3gmc4jKcQjfJST27NeZv6n8OJP6sU0+N7JJUAkc+DdsXwOIkQaw=='; // Use a secure key
 
