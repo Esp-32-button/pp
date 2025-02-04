@@ -138,17 +138,17 @@ function removeStalePairingCodes() {
 // ESP32 sends pairing code
 app.post("/get-pairing-code", (req, res) => {
   const newPairingCode = req.body.pair_code;
-
-  // Store the pairing code in the array and record the time it was last seen
+  
+  // Store the received pairing code in the array
   espPairingCodes.push(newPairingCode);
-  espLastSeen[newPairingCode] = Date.now();  // Track when the pairing code was received
+  espLastSeen[newPairingCode] = Date.now(); // Track when the code was received
 
-  // Log the received code and the updated pairing codes array
   console.log("Received ESP32 Pairing Code:", newPairingCode);
-  console.log("All Pairing Codes in the array:", espPairingCodes);
-
+  console.log("Current Pairing Codes Array:", espPairingCodes);  // Log the array to verify it's storing the codes
+  
   res.json({ message: "Pairing code received" });
 });
+
 
 
 // ESP32 sends heartbeat
