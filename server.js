@@ -118,29 +118,64 @@ app.post('/wifi', (req, res) => {
 });
 
 
-let espPairingCode=null; // Stores the latest pairing code from ESP32
+let espPairingCodes = []; // Array to store multiple pairing codes
+let espLastSeen = {}; // Object to store the last time each pairing code was seen
+
+// Helper function to remove stale pairing codes after a timeout
+function removeStalePairingCodes() {
+    const timeout = 60000; // Timeout in milliseconds (e.g., 1 minute)
+    const currentTime = Date.now();
+
+    for (let code in espLastSeen) {
+        if (currentTime - espLastSeen[code] > timeout) {
+            console.log(`Removing stale pairing code: ${code}`);
+            espPairingCodes = espPairingCodes.filter(pairingCode => pairingCode !== code);
+            delete espLastSeen[code];
+        }
+    }
+}
 
 // ESP32 sends pairing code
 app.post("/get-pairing-code", (req, res) => {
-    espPairingCode= req.body.pair_code;
-    console.log("Received ESP32 Pairing Code:", espPairingCode);
+    const newPairingCode = req.body.pair_code;
+    espPairingCodes.push(newPairingCode);
+    espLastSeen[newPairingCode] = Date.now(); // Track the time the pairing code was seen
+    console.log("Received ESP32 Pairing Code:", newPairingCode);
+    console.log("All Pairing Codes:", espPairingCodes);
     res.json({ message: "Pairing code received" });
 });
+
+// ESP32 sends heartbeat
+app.post("/heartbeat", (req, res) => {
+    const pairCode = req.body.pair_code;
+    if (espPairingCodes.includes(pairCode)) {
+        espLastSeen[pairCode] = Date.now(); // Update the last seen time
+        console.log(`Heartbeat received for pairing code: ${pairCode}`);
+    } else {
+        console.log(`Unknown pairing code received: ${pairCode}`);
+    }
+    res.json({ message: "Heartbeat received" });
+});
+
+// Periodically check for stale codes
+setInterval(removeStalePairingCodes, 20000); // Check every minute
 
 // Website sends pairing code for validation
 app.post("/validate", (req, res) => {
     const userCode = req.body.user_code;
 
-    if (!espPairingCode) {
-        return res.json({ status: "error", message: "No ESP32 code received yet" });
+    if (espPairingCodes.length === 0) {
+        return res.json({ status: "error", message: "No ESP32 codes received yet" });
     }
 
-    if (userCode === espPairingCode) {
+    // Check if the userCode exists in the array of pairing codes
+    if (espPairingCodes.includes(userCode)) {
         res.json({ status: "valid" });
     } else {
         res.json({ status: "invalid" });
     }
 });
+
 
 app.post('/change_wifi', async (req, res) => {
     const { ssid, password } = req.body;
