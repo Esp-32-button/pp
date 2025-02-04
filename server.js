@@ -164,6 +164,8 @@ setInterval(removeStalePairingCodes, 20000); // Check every minute
 
 
 app.post("/validate", (req, res) => {
+    console.log("Request body:", req.body);  // Log the incoming request for debugging
+
     const userCode = req.body.user_code;
 
     // Ensure espPairingCodes is an array
@@ -178,11 +180,10 @@ app.post("/validate", (req, res) => {
 
     // Check if there are any pairing codes received yet
     if (espPairingCodes.length === 0) {
-        res.json({ status: "valid" });
+        return res.json({ status: "error", message: "No ESP32 codes received yet" });
     }
 
     // Check if the userCode exists in the array of pairing codes
-    // Ensure both userCode and elements in espPairingCodes are strings
     if (espPairingCodes.includes(String(userCode))) {
         res.json({ status: "valid" });
     } else {
