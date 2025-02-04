@@ -161,20 +161,35 @@ app.post("/heartbeat", (req, res) => {
 setInterval(removeStalePairingCodes, 20000); // Check every minute
 
 // Website sends pairing code for validation
+
+
 app.post("/validate", (req, res) => {
     const userCode = req.body.user_code;
 
-    if (espPairingCodes.length == 0) {
-         return res.json({ status: "error", message: "No ESP32 codes received yet" });
+    // Ensure espPairingCodes is an array
+    if (!Array.isArray(espPairingCodes)) {
+        return res.json({ status: "error", message: "Internal server error: Pairing codes array is not properly initialized" });
+    }
+
+    // Check if userCode is provided
+    if (!userCode) {
+        return res.json({ status: "error", message: "User code not provided" });
+    }
+
+    // Check if there are any pairing codes received yet
+    if (espPairingCodes.length === 0) {
+        return res.json({ status: "error", message: "No ESP32 codes received yet" });
     }
 
     // Check if the userCode exists in the array of pairing codes
-    if (espPairingCodes.includes(userCode)) {
+    // Ensure both userCode and elements in espPairingCodes are strings
+    if (espPairingCodes.includes(String(userCode))) {
         res.json({ status: "valid" });
     } else {
         res.json({ status: "invalid" });
     }
 });
+
 
 
 app.post('/change_wifi', async (req, res) => {
