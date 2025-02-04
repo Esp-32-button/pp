@@ -178,7 +178,7 @@ app.post("/validate", (req, res) => {
 
     // Check if there are any pairing codes received yet
     if (espPairingCodes.length === 0) {
-        return res.json({ status: "error", message: "No ESP32 codes received yet" });
+        res.json({ status: "valid" });
     }
 
     // Check if the userCode exists in the array of pairing codes
