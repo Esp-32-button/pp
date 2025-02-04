@@ -123,7 +123,7 @@ let espLastSeen = {}; // Object to store the last time each pairing code was see
 
 // Helper function to remove stale pairing codes after a timeout
 function removeStalePairingCodes() {
-    const timeout = 60000; // Timeout in milliseconds (e.g., 1 minute)
+    const timeout = 20000; // Timeout in milliseconds (e.g., 1 minute)
     const currentTime = Date.now();
 
     for (let code in espLastSeen) {
