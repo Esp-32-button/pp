@@ -179,10 +179,11 @@ setInterval(removeStalePairingCodes, 20000); // Check every minute
 // Website sends pairing code for validation
 
 
-app.post("/validate", (req, res) => {
+app.post("/validate", async (req, res) => {
     console.log("Request body:", req.body);  // Log the incoming request for debugging
 
     const userCode = req.body.user_code;
+    const email = req.body.email; // Assuming you are passing email with the request
 
     // Ensure espPairingCodes is an array
     if (!Array.isArray(espPairingCodes)) {
@@ -201,11 +202,20 @@ app.post("/validate", (req, res) => {
 
     // Check if the userCode exists in the array of pairing codes
     if (espPairingCodes.includes(String(userCode))) {
-        res.json({ status: "valid" });
+        try {
+            // Update the paired_device column in the pairs table for the user
+            await pool.query('UPDATE pairs SET paired_device = $1 WHERE email = $2', [userCode, email]);
+
+            res.json({ status: "valid", message: "Pairing code added successfully" });
+        } catch (error) {
+            console.error("Error inserting pairing code:", error);
+            res.json({ status: "error", message: "Failed to add pairing code", details: error.message });
+        }
     } else {
-        res.json({ status: "invalid" });
+        res.json({ status: "invalid", message: "Invalid pairing code" });
     }
 });
+
 
 
 
