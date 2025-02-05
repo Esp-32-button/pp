@@ -76,17 +76,14 @@ app.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     try {
-        const result = await pool.query(
-            'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id', 
-            [email, hashedPassword]
-        );
-        const userId = result.rows[0].id;
-        res.status(201).send({ message: 'User registered successfully', userId });
+        await pool.query('INSERT INTO users (email, password) VALUES ($1, $2)', [email, hashedPassword]);
+        res.status(201).send({ message: 'User registered successfully' });
     } catch (err) {
-        console.error(err);
+        console.error('Error during registration:', err); // Log the entire error
         res.status(400).send({ error: 'Registration failed', details: err.message });
     }
 });
+
 
 
 app.post('/login', async (req, res) => {
