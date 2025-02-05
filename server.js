@@ -74,13 +74,20 @@ const SECRET_KEY = '/cTFigjrKOOlRA7S1bI1Pxk809ZAN4gi5FJ3gmc4jKcQjfJST27NeZv6n8OJ
 app.post('/register', async (req, res) => {
     const { email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
+    
     try {
-        await pool.query('INSERT INTO users (email, password) VALUES ($1, $2)', [email, hashedPassword]);
-        res.status(201).send({ message: 'User registered successfully' });
+        const result = await pool.query(
+            'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id', 
+            [email, hashedPassword]
+        );
+        const userId = result.rows[0].id;
+        res.status(201).send({ message: 'User registered successfully', userId });
     } catch (err) {
-        res.status(400).send({ error: 'Registration failed' });
+        console.error(err);
+        res.status(400).send({ error: 'Registration failed', details: err.message });
     }
 });
+
 
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
