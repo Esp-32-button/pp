@@ -76,13 +76,19 @@ app.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     try {
+        // Insert user into users table
         await pool.query('INSERT INTO users (email, password) VALUES ($1, $2)', [email, hashedPassword]);
+
+        // Insert email into pairs table with paired_device set to NULL
+        await pool.query('INSERT INTO pairs (email, paired_device) VALUES ($1, NULL)', [email]);
+
         res.status(201).send({ message: 'User registered successfully' });
     } catch (err) {
-        console.error('Error during registration:', err); // Log the entire error
+        console.error('Error during registration:', err);
         res.status(400).send({ error: 'Registration failed', details: err.message });
     }
 });
+
 
 
 
