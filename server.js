@@ -127,16 +127,24 @@ app.post('/register_device', async (req, res) => {
     }
 
     try {
-        // Store the device info in the database (ID to IP mapping)
-        await pool.query('INSERT INTO devices (id, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
+        // Try to insert or update the device info in the database
+        const result = await pool.query(
+            `INSERT INTO devices (id, ipaddress) 
+            VALUES ($1, $2) 
+            ON CONFLICT (id) 
+            DO UPDATE SET ipAddress = $2`,
+            [deviceId, ipAddress]
+        );
 
-        // Send a successful response
-        res.status(200).send({ message: 'Device registered successfully' });
+        // If the row is inserted or updated successfully, send a success response
+        res.status(200).send({ message: 'Device registered or IP address updated successfully' });
+
     } catch (err) {
         console.error("Database error:", err);
-        res.status(500).send({ error: 'Failed to register device' });
+        res.status(500).send({ error: 'Failed to register or update device' });
     }
 });
+
 
 
 app.post('/wifi', (req, res) => {
