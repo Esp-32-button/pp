@@ -128,7 +128,7 @@ app.post('/register_device', async (req, res) => {
 
     try {
         // Store the device info in the database (ID to IP mapping)
-        await pool.query('INSERT INTO devices (deviceId, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
+        await pool.query('INSERT INTO devices (id, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
 
         // Send a successful response
         res.status(200).send({ message: 'Device registered successfully' });
