@@ -109,12 +109,17 @@ app.post('/login', async (req, res) => {
     }
 });
 
+app.use(bodyParser.urlencoded({ extended: true })); // Ensure this is included
+
+// Middleware to parse JSON data (if you are using JSON format)
+app.use(bodyParser.json());
+
 // Handle device registration request
 app.post('/register_device', async (req, res) => {
-    const { deviceId, ipAddress } = req.body;
-
-    // Log the received request body for debugging
+    // Log the entire body to see what the server is receiving
     console.log("Received registration data:", req.body);
+
+    const { deviceId, ipAddress } = req.body;
 
     // Check if deviceId and ipAddress are present in the body
     if (!deviceId || !ipAddress) {
@@ -123,7 +128,7 @@ app.post('/register_device', async (req, res) => {
 
     try {
         // Store the device info in the database (ID to IP mapping)
-        await pool.query('INSERT INTO devices (id, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
+        await pool.query('INSERT INTO devices (deviceId, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
 
         // Send a successful response
         res.status(200).send({ message: 'Device registered successfully' });
