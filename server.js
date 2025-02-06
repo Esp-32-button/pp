@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const app = express();
 const port = 3000;
-const ESP32_IP = 'http://192.168.132.56';
+
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -113,10 +113,17 @@ app.post('/login', async (req, res) => {
 
 
 app.post('/wifi', (req, res) => {
-    const { ssid, password } = req.body;
+    const { ssid, password, deviceId } = req.body;
 
-    // Forward the request to the ESP32
-    const espUrl = `http://<ESP32-IP-Address>/change_wifi`;
+    // Check if deviceId is provided
+    if (!deviceId) {
+        return res.status(400).send({ error: 'Device ID is required' });
+    }
+
+    // Build the ESP32 URL dynamically based on deviceId
+    const espUrl = `http://${deviceId}/change_wifi`; // Use deviceId in place of a fixed IP
+
+    // Send the request to the corresponding ESP32 device
     fetch(espUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -126,6 +133,7 @@ app.post('/wifi', (req, res) => {
         .then((data) => res.status(200).send({ message: data }))
         .catch((error) => res.status(500).send({ error: 'Failed to update Wi-Fi credentials' }));
 });
+
 
 
 let espPairingCodes = []; // Array to store multiple pairing codes
