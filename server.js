@@ -109,7 +109,24 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Server endpoint to receive device IP registration
+app.post('/register_device', async (req, res) => {
+    const { deviceId, ipAddress } = req.body;
 
+    if (!deviceId || !ipAddress) {
+        return res.status(400).send({ error: 'Device ID and IP address are required' });
+    }
+
+    try {
+        // Store the device info in the database (ID to IP mapping)
+        await pool.query('INSERT INTO devices (id, ipAddress) VALUES ($1, $2)', [deviceId, ipAddress]);
+
+        res.status(200).send({ message: 'Device registered successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Failed to register device' });
+    }
+});
 
 
 app.post('/wifi', (req, res) => {
