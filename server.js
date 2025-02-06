@@ -115,23 +115,35 @@ app.post('/login', async (req, res) => {
 app.post('/wifi', (req, res) => {
     const { ssid, password, deviceId } = req.body;
 
-    // Check if deviceId is provided
+    // Validate that deviceId is provided
     if (!deviceId) {
         return res.status(400).send({ error: 'Device ID is required' });
     }
 
-    // Build the ESP32 URL dynamically based on deviceId
-    const espUrl = `http://${deviceId}/change_wifi`; // Use deviceId in place of a fixed IP
+    // Query the database to find the IP address for the given deviceId
+    pool.query('SELECT ipAddress FROM devices WHERE id = ?', [deviceId], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send({ error: 'Database query failed' });
+        }
 
-    // Send the request to the corresponding ESP32 device
-    fetch(espUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ ssid, password }),
-    })
-        .then((response) => response.text())
-        .then((data) => res.status(200).send({ message: data }))
-        .catch((error) => res.status(500).send({ error: 'Failed to update Wi-Fi credentials' }));
+        if (results.length === 0) {
+            return res.status(404).send({ error: 'Device not found' });
+        }
+
+        const ipAddress = results[0].ipAddress;
+        const espUrl = `http://${ipAddress}/change_wifi`;  // Build the ESP32 URL
+
+        // Send the request to the corresponding ESP32 device
+        fetch(espUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ ssid, password }),
+        })
+            .then((response) => response.text())
+            .then((data) => res.status(200).send({ message: data }))
+            .catch((error) => res.status(500).send({ error: 'Failed to update Wi-Fi credentials' }));
+    });
 });
 
 
