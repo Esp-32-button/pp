@@ -109,41 +109,6 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.use(bodyParser.urlencoded({ extended: true })); // Ensure this is included
-
-// Middleware to parse JSON data (if you are using JSON format)
-app.use(bodyParser.json());
-
-// Handle device registration request
-app.post('/register_device', async (req, res) => {
-    // Log the entire body to see what the server is receiving
-    console.log("Received registration data:", req.body);
-
-    const { deviceId, ipAddress } = req.body;
-
-    // Check if deviceId and ipAddress are present in the body
-    if (!deviceId || !ipAddress) {
-        return res.status(400).send({ error: 'Device ID and IP address are required' });
-    }
-
-    try {
-        // Try to insert or update the device info in the database
-        const result = await pool.query(
-            `INSERT INTO devices (id, ipaddress) 
-            VALUES ($1, $2) 
-            ON CONFLICT (id) 
-            DO UPDATE SET ipAddress = $2`,
-            [deviceId, ipAddress]
-        );
-
-        // If the row is inserted or updated successfully, send a success response
-        res.status(200).send({ message: 'Device registered or IP address updated successfully' });
-
-    } catch (err) {
-        console.error("Database error:", err);
-        res.status(500).send({ error: 'Failed to register or update device' });
-    }
-});
 
 
 
@@ -254,15 +219,15 @@ app.post("/validate", async (req, res) => {
 
 
 
-app.post('/change_wifi', async (req, res) => {
-    const { ssid, password } = req.body;
+/*app.post('/change_wifi', async (req, res) => {
+    const { ssid, password,ipAddress } = req.body;
 
     if (!ssid || !password) {
         return res.status(400).json({ error: 'SSID and Password are required.' });
     }
 
     try {
-        const response = await axios.post('http://<ESP32_IP_ADDRESS>/change_wifi', {
+        const response = await axios.post('http://ipAddress/change_wifi', {
             ssid,
             password,
         });
@@ -275,7 +240,7 @@ app.post('/change_wifi', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Error communicating with ESP32.' });
     }
-});
+});*/
 
 let servoState = "OFF"; // Default state
 
