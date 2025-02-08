@@ -304,7 +304,7 @@ app.post('/unpair', async (req, res) => {
     }
 
     // Delete the pairing record
-    const result = await db.query(
+    const result = await pool.query(
       'DELETE FROM pairs WHERE email = $1 AND paired_device = $2 RETURNING *',
       [email, device_id]
     );
