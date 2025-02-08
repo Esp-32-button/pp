@@ -148,27 +148,7 @@ app.post('/register_device', async (req, res) => {
 
 
 app.post('/wifi', (req, res) => {
-    const { ssid, password, deviceId } = req.body;
-
-    // Validate that deviceId is provided
-    if (!deviceId) {
-        return res.status(400).send({ error: 'Device ID is required' });
-    }
-
-    // Query the database to find the IP address for the given deviceId
-    pool.query('SELECT ipAddress FROM devices WHERE id = ?', [deviceId], (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send({ error: 'Database query failed' });
-        }
-
-        if (results.length === 0) {
-            return res.status(404).send({ error: 'Device not found' });
-        }
-
-        const ipAddress = results[0].ipAddress;
-        const espUrl = `http://${ipAddress}/change_wifi`;  // Build the ESP32 URL
-
+    const { ssid, password} = req.body;
         // Send the request to the corresponding ESP32 device
         fetch(espUrl, {
             method: 'POST',
