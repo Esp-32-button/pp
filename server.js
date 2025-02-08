@@ -285,6 +285,49 @@ app.post('/add-pairing-code', async (req, res) => {
     }
 });
 
+app.get('/get-devices', async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Query the database for all devices paired with this email
+    const devices = await db.query(
+      'SELECT email, paired_device FROM device_pairs WHERE email = $1',
+      [email]
+    );
+
+    // For each device, get its current status
+    const devicesWithStatus = await Promise.all(
+      devices.rows.map(async (device) => {
+        if (!device.paired_device) {
+          return device;
+        }
+
+        // Get the device's current status from the device_status table
+        const status = await db.query(
+          'SELECT is_on, last_activity FROM device_status WHERE device_id = $1',
+          [device.paired_device]
+        );
+
+        return {
+          ...device,
+          status: status.rows[0] ? {
+            isOn: status.rows[0].is_on,
+            lastActivity: status.rows[0].last_activity
+          } : undefined
+        };
+      })
+    );
+
+    res.json(devicesWithStatus);
+  } catch (error) {
+    console.error('Error fetching devices:', error);
+    res.status(500).json({ error: 'Failed to fetch devices' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
