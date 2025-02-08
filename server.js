@@ -294,6 +294,32 @@ app.get('/get-devices', async (req, res) => {
   }
 });
 
+// Unpair device endpoint
+app.post('/unpair', authenticateToken, async (req, res) => {
+  try {
+    const { device_id, email } = req.body;
+
+    if (!device_id || !email) {
+      return res.status(400).json({ error: 'Device ID and email are required' });
+    }
+
+    // Delete the pairing record
+    const result = await db.query(
+      'DELETE FROM pairs WHERE email = $1 AND paired_device = $2 RETURNING *',
+      [email, device_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Device not found or already unpaired' });
+    }
+
+    res.json({ message: 'Device unpaired successfully' });
+  } catch (error) {
+    console.error('Error unpairing device:', error);
+    res.status(500).json({ error: 'Failed to unpair device' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
