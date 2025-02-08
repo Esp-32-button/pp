@@ -273,7 +273,7 @@ app.post('/add-pairing-code', async (req, res) => {
     }
 });
 
-app.get('/get-devices', authenticateToken, async (req, res) => {
+app.get('/get-devices', async (req, res) => {
   try {
     const { email } = req.query;
 
