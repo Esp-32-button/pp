@@ -295,7 +295,7 @@ app.get('/get-devices', async (req, res) => {
 });
 
 // Unpair device endpoint
-app.post('/unpair', authenticateToken, async (req, res) => {
+app.post('/unpair', async (req, res) => {
   try {
     const { device_id, email } = req.body;
 
