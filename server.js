@@ -159,7 +159,7 @@ app.post('/wifi', (req, res) => {
             .then((data) => res.status(200).send({ message: data }))
             .catch((error) => res.status(500).send({ error: 'Failed to update Wi-Fi credentials' }));
     });
-});
+
 
 
 
