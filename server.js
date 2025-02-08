@@ -180,41 +180,29 @@ setInterval(removeStalePairingCodes, 20000); // Check every minute
 
 
 app.post("/validate", async (req, res) => {
-    console.log("Request body:", req.body);  // Log the incoming request for debugging
+    const { email, pairingCode } = req.body;
 
-    const userCode = req.body.user_code;
-    const email = req.body.email; // Assuming you are passing email with the request
-
-    // Ensure espPairingCodes is an array
-    if (!Array.isArray(espPairingCodes)) {
-        return res.json({ status: "error", message: "Internal server error: Pairing codes array is not properly initialized" });
+    if (!email || !pairingCode) {
+        return res.status(400).json({ error: 'Email and pairing code are required' });
     }
 
-    // Check if userCode is provided
-    if (!userCode) {
-        return res.json({ status: "error", message: "User code not provided" });
-    }
-
-    // Check if there are any pairing codes received yet
-    if (espPairingCodes.length === 0) {
-        return res.json({ status: "error", message: "No ESP32 codes received yet" });
-    }
-
-    // Check if the userCode exists in the array of pairing codes
-    if (espPairingCodes.includes(String(userCode))) {
+    if (espPairingCodes.includes(String(pairingCode))) {
         try {
-            // Update the paired_device column in the pairs table for the user
-            await pool.query('UPDATE pairs SET paired_device = $1 WHERE email = $2', [userCode, email]);
+            await pool.query(
+                'UPDATE pairs SET paired_device = $1 WHERE email = $2',
+                [pairingCode, email]
+            );
 
-            res.json({ status: "valid", message: "Pairing code added successfully" });
+            res.json({ message: 'Device paired successfully' });
         } catch (error) {
-            console.error("Error inserting pairing code:", error);
-            res.json({ status: "error", message: "Failed to add pairing code", details: error.message });
+            console.error("Error pairing device:", error);
+            res.status(500).json({ error: 'Failed to pair device' });
         }
     } else {
-        res.json({ status: "invalid", message: "Invalid pairing code" });
+        res.status(400).json({ error: 'Invalid pairing code' });
     }
 });
+
 
 
 
@@ -285,7 +273,7 @@ app.post('/add-pairing-code', async (req, res) => {
     }
 });
 
-app.get('/get-devices', async (req, res) => {
+app.get('/get-devices', authenticateToken, async (req, res) => {
   try {
     const { email } = req.query;
 
@@ -293,41 +281,19 @@ app.get('/get-devices', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Query the database for all devices paired with this email
-    const devices = await db.query(
-      'SELECT email, paired_device FROM device_pairs WHERE email = $1',
+    // Simple query to get paired devices from the pairs table
+    const result = await pool.query(
+      'SELECT email, paired_device FROM pairs WHERE email = $1',
       [email]
     );
 
-    // For each device, get its current status
-    const devicesWithStatus = await Promise.all(
-      devices.rows.map(async (device) => {
-        if (!device.paired_device) {
-          return device;
-        }
-
-        // Get the device's current status from the device_status table
-        const status = await db.query(
-          'SELECT is_on, last_activity FROM device_status WHERE device_id = $1',
-          [device.paired_device]
-        );
-
-        return {
-          ...device,
-          status: status.rows[0] ? {
-            isOn: status.rows[0].is_on,
-            lastActivity: status.rows[0].last_activity
-          } : undefined
-        };
-      })
-    );
-
-    res.json(devicesWithStatus);
+    res.json(result.rows);
   } catch (error) {
     console.error('Error fetching devices:', error);
     res.status(500).json({ error: 'Failed to fetch devices' });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
