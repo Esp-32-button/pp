@@ -303,9 +303,9 @@ app.post('/unpair', async (req, res) => {
       return res.status(400).json({ error: 'Device ID and email are required' });
     }
 
-    // Delete the pairing record
+    // Update the record by setting paired_device to null for the specified email
     const result = await pool.query(
-      'DELETE FROM pairs WHERE email = $1 AND paired_device = $2 RETURNING *',
+      'UPDATE pairs SET paired_device = NULL WHERE email = $1 AND paired_device = $2 RETURNING *',
       [email, device_id]
     );
 
