@@ -230,19 +230,29 @@ app.post("/validate", async (req, res) => {
     }
 });*/
 
-let servoState = "OFF"; // Default state
+let espServoState = {}; // Track servo state for each ESP32
 
 app.post("/servo", (req, res) => {
-  const { state } = req.body;
+  const { pairingCode, state } = req.body; // Expecting deviceId for each request
   if (state !== "ON" && state !== "OFF") return res.status(400).json({ error: "Invalid state" });
 
-  servoState = state;
-  res.json({ message: `Servo set to ${state}` });
+  if (!pairingCode) return res.status(400).json({ error: "Device ID is required" });
+
+  // Set the servo state for the specific device
+  espServoState[pairingCode] = state;
+  res.json({ message: `Servo on device ${pairingCode} set to ${state}` });
 });
 
-// ESP32 Fetches State
+// Fetching state for a specific device
 app.get("/servo", (req, res) => {
-  res.json({ state: servoState });
+  const { deviceId } = req.query;
+  
+  if (!pairingCode) return res.status(400).json({ error: "Device ID is required" });
+
+  const state = espServoState[pairingCode];
+  if (!state) return res.status(404).json({ error: "Device not found" });
+
+  res.json({ state });
 });
 
 app.post('/add-pairing-code', async (req, res) => {
