@@ -255,7 +255,7 @@ app.post("/servo", (req, res) => {
 
 // GET request to fetch servo state for a specific device
 app.get("/servo", (req, res) => {
-  const { pairingCode } = req.query;
+  const { pairingCode,state } = req.query;
   
   if (!pairingCode) {
     return res.status(400).json({ error: "Device ID (pairingCode) is required" });
