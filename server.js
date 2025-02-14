@@ -189,8 +189,7 @@ app.post("/validate", async (req, res) => {
     if (espPairingCodes.includes(String(pairingCode))) {
         try {
             await pool.query(
-                'UPDATE pairs SET paired_device = $1 WHERE email = $2',
-                [pairingCode, email]
+               UPDATE pairs SET paired_device = ARRAY[$1]::varchar(255)[] WHERE email = $2;
             );
 
             res.json({ message: 'Device paired successfully' });
