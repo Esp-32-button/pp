@@ -198,6 +198,15 @@ app.post("/validate", async (req, res) => {
             console.error("Error pairing device:", error);
             res.status(500).json({ error: 'Failed to pair device' });
         }
+       try {
+            await pool.query(
+               'UPDATE device_activity SET pairing_code =$1',
+              [pairingCode]
+            );}
+       catch (error) {
+            console.error("Error pairing device:", error);
+            res.status(500).json({ error: 'Failed to pair device' });
+        }
     } else {
         res.status(400).json({ error: 'Invalid pairing code' });
     }
@@ -347,6 +356,47 @@ app.post('/unpair', async (req, res) => {
     res.status(500).json({ error: 'Failed to unpair device' });
   }
 });
+
+app.get('/last-activity', (req, res) => {
+  const { pairingCode } = req.query;
+
+  if (!pairingCode) {
+    return res.status(400).json({ message: 'pairingCode is required' });
+  }
+
+  // Query to fetch the last activity timestamp for the given pairingCode
+  db.query('SELECT timestamp FROM device_activity WHERE pairing_code = ?', [pairingCode], (err, results) => {
+    if (err) {
+      console.error('Error fetching data from database:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Device not found' });
+    }
+
+    const timestamp = new Date(results[0].timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
+
+    let activityText;
+    if (diffInSeconds < 60) {
+      activityText = `${diffInSeconds} seconds ago`;
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      activityText = `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      activityText = `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      activityText = `${days} day${days === 1 ? '' : 's'} ago`;
+    }
+
+    res.json({ timestamp: results[0].timestamp, activityText });
+  });
+});
+
 
 
 app.listen(port, () => {
