@@ -200,7 +200,7 @@ app.post("/validate", async (req, res) => {
         }
        try {
             await pool.query(
-               'UPDATE device_activity SET pairing_code =$1 WHERE email = $2',
+               'INSERT INTO device_activity (email, pairing_code) VALUES ($2, $1)',
               [pairingCode, email]
             );}
          
