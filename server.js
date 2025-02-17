@@ -365,7 +365,7 @@ app.get('/last-activity', (req, res) => {
   }
 
   // Query to fetch the last activity timestamp for the given pairingCode
-  db.query('SELECT timestamp FROM device_activity WHERE pairing_code = ?', [pairingCode], (err, results) => {
+  pool.query('SELECT timestamp FROM device_activity WHERE pairing_code = ?', [pairingCode], (err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
       return res.status(500).json({ message: 'Internal server error' });
