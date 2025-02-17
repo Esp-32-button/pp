@@ -200,9 +200,10 @@ app.post("/validate", async (req, res) => {
         }
        try {
             await pool.query(
-               'UPDATE device_activity SET pairing_code =$1',
-              [pairingCode]
+               'UPDATE device_activity SET pairing_code =$1 WHERE email = $2',
+              [pairingCode, email]
             );}
+         
        catch (error) {
             console.error("Error pairing device:", error);
             res.status(500).json({ error: 'Failed to pair device' });
