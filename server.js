@@ -398,7 +398,37 @@ app.get('/last-activity', (req, res) => {
   });
 });
 
+app.post('/schedule', async (req, res) => {
+  const { pairingCode, scheduleTime, action } = req.body;
 
+  if (!pairingCode || !scheduleTime || !action) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // Insert schedule into the database
+    const result = await pool.query(
+      'INSERT INTO schedules (pairing_code, schedule_time, action) VALUES ($1, $2, $3) RETURNING *',
+      [pairingCode, scheduleTime, action]
+    );
+
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error saving schedule:', error);
+    return res.status(500).json({ error: 'Failed to save schedule' });
+  }
+});
+
+// Endpoint to fetch schedules
+app.get('/schedules', async (req, res) => {
+  try {
+    const result = await client.query('SELECT * FROM schedules');
+    return res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching schedules:', error);
+    return res.status(500).json({ error: 'Failed to fetch schedules' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
