@@ -407,17 +407,18 @@ app.post('/schedule', async (req, res) => {
 
   try {
     // Insert schedule into the database
-    const result = await pool.query(
+    const result = await client.query(
       'INSERT INTO schedules (pairing_code, schedule_time, action) VALUES ($1, $2, $3) RETURNING *',
       [pairingCode, scheduleTime, action]
     );
 
     return res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error saving schedule:', error);
-    return res.status(500).json({ error: 'Failed to save schedule' });
+    console.error('Error saving schedule:', error);  // Log the error for debugging
+    return res.status(500).json({ error: 'Failed to save schedule', details: error.message });
   }
 });
+
 
 // Endpoint to fetch schedules
 app.get('/schedules', async (req, res) => {
