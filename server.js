@@ -408,7 +408,7 @@ app.post('/schedule', async (req, res) => {
   try {
     // Insert schedule into the database
     const result = await pool.query(
-      'INSERT INTO schedules (pairing_code, schedule_time, "  action") RETURNING *',
+      'INSERT INTO schedules (pairing_code, schedule_time, "  action") VALUES ($1, $2, $3) RETURNING *',
       [pairingCode, scheduleTime, action]
     );
 
