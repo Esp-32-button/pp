@@ -190,7 +190,7 @@ app.post("/validate", async (req, res) => {
         try {
             await pool.query(
                'UPDATE pairs SET paired_device = array_append(COALESCE(paired_device, ARRAY[]::varchar[]), $1) WHERE email = $2'
-               
+               [pairingCode, email]
              
             );
 
