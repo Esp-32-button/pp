@@ -74,7 +74,6 @@ const SECRET_KEY = '/cTFigjrKOOlRA7S1bI1Pxk809ZAN4gi5FJ3gmc4jKcQjfJST27NeZv6n8OJ
 app.post('/register', async (req, res) => {
     const { email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    
     try {
         // Insert user into users table
         await pool.query('INSERT INTO users (email, password) VALUES ($1, $2)', [email, hashedPassword]);
