@@ -420,18 +420,18 @@ const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
   try {
-    console.log('⏰ Running schedule checker...');
+    console.log('Running schedule checker...');
 
     // Get the current UTC time in HH:MM:SS format
     const now = new Date();
     const utcTime = now.toISOString().slice(11, 19); // e.g., "00:00:16"
-    console.log(`🔍 Current UTC time (HH:MM:SS): ${utcTime}`);
+    console.log(`Current UTC time (HH:MM:SS): ${utcTime}`);
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
-    console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
+    console.log('Database Time (UTC):', testDb.rows[0].db_time);
 
-    // Query schedules where the exact time is reached (± 2 seconds for accuracy)
+    // Query schedules where the exact time is reached
     const { rows: schedules } = await pool.query(
       `
       WITH latest_schedule AS (
@@ -447,21 +447,21 @@ const checkAndTriggerServos = async () => {
     );
 
     if (schedules.length === 0) {
-      console.log('❌ No matching schedules found.');
+      console.log('No matching schedules found.');
       return;
     }
 
-    console.log(`✅ Found ${schedules.length} schedules to process:`, schedules);
+    console.log(`Found ${schedules.length} schedules to process:`, schedules);
 
     // Process each schedule and update servo state
     for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
       // If the action is already applied, skip to avoid redundant requests
       if (lastServoState[pairing_code] === action.toUpperCase()) {
-        console.log(`🔔 State already sent for ${pairing_code}, skipping...`);
+        console.log(`State already sent for ${pairing_code}, skipping...`);
         continue;
       }
 
-      console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
+      console.log(`Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
       // Send the correct JSON payload to /servo
       try {
@@ -475,16 +475,21 @@ const checkAndTriggerServos = async () => {
         });
 
         const responseData = await response.json();
-        console.log(`✅ ESP32 Response:`, responseData);
+        console.log('ESP32 Response:', responseData);
 
         // Update the last known state to prevent repeated calls
         lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
-        console.error(`🚨 Error sending request for ${pairing_code}:`, error);
+        console.error(`Error sending request for ${pairing_code}:`, error);
       }
     }
   } catch (error) {
-    console.error('🚨 Error in checkAndTriggerServ
+    console.error('Error in checkAndTriggerServos:', error);
+  }
+};
+
+// Run the schedule checker every 2 seconds
+setInterval(checkAndTriggerServos, 2000);
 
 
 
