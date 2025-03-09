@@ -203,16 +203,7 @@ app.post("/validate", async (req, res) => {
             console.error("Error pairing device:", error);
             res.status(500).json({ error: 'Failed to pair device' });
         }
-       try {
-            await pool.query(
-               'INSERT INTO device_activity (email, pairing_code) VALUES ($2, $1)',
-              [pairingCode, email]
-            );}
-         
-       catch (error) {
-            console.error("Error pairing device:", error);
-            res.status(500).json({ error: 'Failed to pair device' });
-        }
+    
     } else {
         res.status(400).json({ error: 'Invalid pairing code' });
     }
