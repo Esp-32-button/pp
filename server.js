@@ -415,6 +415,9 @@ app.get('/schedules', async (req, res) => {
 });
 
 
+// Track the last state for each pairing code to avoid redundant API calls
+const lastServoState: Record<string, string> = {};
+
 const checkAndTriggerServos = async () => {
   try {
     console.log('⏰ Running schedule checker...');
@@ -428,36 +431,51 @@ const checkAndTriggerServos = async () => {
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Query schedules matching the exact UTC time
+    // Query schedules where the time has passed
     const { rows: schedules } = await pool.query(
-      `SELECT pairing_code, "  actions"
+      `SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
        FROM schedules
-       WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') = $1;`,
+       WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') <= $1
+       ORDER BY schedule_time DESC;`,
       [utcTime]
     );
 
     if (schedules.length === 0) {
-      console.log('❌ No matching schedules found.');
-    } else {
-      console.log(`✅ Found ${schedules.length} matching schedules:`, schedules);
+      console.log('❌ No active schedules to process.');
+      return;
     }
 
-    // Trigger servo for each matching schedule
-    for (const { pairing_code, "  actions": action } of schedules) {
-      console.log(`🚀 Triggering servo for ${pairing_code} with state ${action}`);
+    console.log(`✅ Found ${schedules.length} schedules to process:`, schedules);
+
+    // Process each schedule and update servo state
+    for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
+      // Check if we've already sent this state to avoid redundant calls
+      if (lastServoState[pairing_code] === action.toUpperCase()) {
+        console.log(`🔔 State already sent for ${pairing_code}, skipping...`);
+        continue;
+      }
+
+      console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
       // Send the correct JSON payload to /servo
-      const response = await fetch('https://pp-kcfa.onrender.com/servo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pairingCode: pairing_code,
-          state: action.toUpperCase(),
-        }),
-      });
+      try {
+        const response = await fetch('https://pp-kcfa.onrender.com/servo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pairingCode: pairing_code,
+            state: action.toUpperCase(),
+          }),
+        });
 
-      const responseData = await response.json();
-      console.log(`✅ ESP32 Response:`, responseData);
+        const responseData = await response.json();
+        console.log(`✅ ESP32 Response:`, responseData);
+
+        // Update the last known state to prevent repeated calls
+        lastServoState[pairing_code] = action.toUpperCase();
+      } catch (error) {
+        console.error(`🚨 Error sending request for ${pairing_code}:`, error);
+      }
     }
   } catch (error) {
     console.error('🚨 Error in checkAndTriggerServos:', error);
