@@ -431,13 +431,13 @@ const checkAndTriggerServos = async () => {
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Query schedules matching the current time +/- 2 seconds for accuracy
+    // Query schedules where the exact time is reached (± 2 seconds for accuracy)
     const { rows: schedules } = await pool.query(
       `
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE schedule_time BETWEEN $1::time - INTERVAL '2 seconds' AND $1::time + INTERVAL '2 seconds'
+        WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') = $1
         ORDER BY pairing_code, schedule_time DESC
       )
       SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
@@ -447,7 +447,7 @@ const checkAndTriggerServos = async () => {
     );
 
     if (schedules.length === 0) {
-      console.log('❌ No active schedules to process.');
+      console.log('❌ No matching schedules found.');
       return;
     }
 
@@ -484,12 +484,8 @@ const checkAndTriggerServos = async () => {
       }
     }
   } catch (error) {
-    console.error('🚨 Error in checkAndTriggerServos:', error);
-  }
-};
+    console.error('🚨 Error in checkAndTriggerServ
 
-// ✅ Run the schedule checker every 2 seconds
-setInterval(checkAndTriggerServos, 10000);
 
 
     
