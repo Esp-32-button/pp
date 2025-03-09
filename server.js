@@ -415,6 +415,9 @@ app.get('/schedules', async (req, res) => {
 });
 
 
+// Track the last state for each pairing code
+const lastServoState: Record<string, string> = {};
+
 const checkAndTriggerServos = async () => {
   try {
     console.log('⏰ Running schedule checker...');
@@ -428,12 +431,18 @@ const checkAndTriggerServos = async () => {
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Query schedules where the time has passed
+    // Fetch the latest schedule for each device where time has passed
     const { rows: schedules } = await pool.query(
-      `SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
-       FROM schedules
-       WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') <= $1
-       ORDER BY schedule_time DESC;`,
+      `
+      WITH latest_schedule AS (
+        SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
+        FROM schedules
+        WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') <= $1
+        ORDER BY pairing_code, schedule_time DESC
+      )
+      SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
+      FROM latest_schedule;
+      `,
       [utcTime]
     );
 
@@ -446,6 +455,12 @@ const checkAndTriggerServos = async () => {
 
     // Process each schedule and update servo state
     for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
+      // If the action is already applied, skip to avoid redundant requests
+      if (lastServoState[pairing_code] === action.toUpperCase()) {
+        console.log(`🔔 State already sent for ${pairing_code}, skipping...`);
+        continue;
+      }
+
       console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
       // Send the correct JSON payload to /servo
@@ -461,6 +476,9 @@ const checkAndTriggerServos = async () => {
 
         const responseData = await response.json();
         console.log(`✅ ESP32 Response:`, responseData);
+
+        // Update the last known state to prevent repeated calls
+        lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
         console.error(`🚨 Error sending request for ${pairing_code}:`, error);
       }
@@ -472,7 +490,6 @@ const checkAndTriggerServos = async () => {
 
 // ✅ Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
-
 
 
 
