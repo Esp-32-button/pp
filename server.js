@@ -252,56 +252,22 @@ let espServoState = {}; // Track servo state for each ESP32
 
 // POST request to set servo state for a specific device
 app.post("/servo", async (req, res) => {
-  const { pairingCode, state } = req.body;
-  try {
-     if (state !== "ON" && state !== "OFF") {
-      return res.status(400).json({ error: "Invalid state" });
-    }
+  const { pairingCode, state } = req.body; // Expecting pairingCode and state
+  try{
+  if (state !== "ON" && state !== "OFF") {
+    return res.status(400).json({ error: "Invalid state" });
+  }
 
-    if (!pairingCode) {
-      return res.status(400).json({ error: "Device ID (pairingCode) is required" });
-    }
+  if (!pairingCode) {
+    return res.status(400).json({ error: "Device ID (pairingCode) is required" });
+  }
 
-    console.log(`Received POST request for pairingCode: ${pairingCode}, state: ${state}`);
+  
+  // Set the servo state for the specific device
+  espServoState[pairingCode] = state;
+  console.log(`Updated state for device ${pairingCode}: ${state}`); 
+  res.json({ message: `Servo on device ${pairingCode} set to ${state}` });}};
 
-
-    // Device control logic
-    const deviceResponse = await fetch('https://pp-kcfa.onrender.com/last-activity', {
-      method: 'POST',
-      body: JSON.stringify({ state, pairingCode })
-    });
-
-    if (!deviceResponse.ok) {
-      throw new Error('Device control failed');
-    }
-
-    // Record activity
-    await pool.query(
-      'INSERT INTO device_activity (pairing_code, state) VALUES ($1, $2)',
-      [pairingCode, state]
-    );
-
-    // 🔥 CRITICAL: Update servo state and send response
-    espServoState[pairingCode] = state;
-    console.log(`Updated state for device ${pairingCode}: ${state}`);
-
-    // Send SINGLE response with all information
-    res.json({ 
-      success: true,
-      message: `Device ${pairingCode} turned ${state}`,
-      state: state
-    });
-
-  } catch (error) {
-     console.error('Endpoint error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Operation failed'
-  });
-    }
-  } // Added missing closing brace for catch block
-});
 // GET request to fetch servo state for a specific device
 app.get("/servo", (req, res) => {
   const { pairingCode } = req.query;
