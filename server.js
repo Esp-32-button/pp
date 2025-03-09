@@ -435,6 +435,7 @@ app.get('/schedules', async (req, res) => {
   }
 });
 
+// ✅ Check and Trigger Servo based on Schedule (every minute)
 const checkAndTriggerServos = async () => {
   try {
     const now = new Date();
@@ -442,11 +443,11 @@ const checkAndTriggerServos = async () => {
 
     // Get schedules matching the current time
     const { rows: schedules } = await pool.query(
-      'SELECT pairing_code, action FROM schedules WHERE schedule_time = $1',
+      'SELECT pairing_code, "  action" FROM schedules WHERE schedule_time = $1',
       [currentTime]
     );
 
-    for (const { pairing_code,   action } of schedules) {
+    for (const { pairing_code, "  action": action } of schedules) {
       console.log(`Triggering servo for ${pairing_code} to ${action}`);
 
       // Send the command to the ESP32 via your API
@@ -466,6 +467,7 @@ const checkAndTriggerServos = async () => {
 
 // Run the schedule checker every minute
 setInterval(checkAndTriggerServos, 60 * 1000);
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
