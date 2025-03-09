@@ -416,6 +416,7 @@ app.get('/schedules', async (req, res) => {
 
 
 // Track the last state for each pairing code
+// Track the last state for each pairing code
 const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
@@ -480,6 +481,17 @@ const checkAndTriggerServos = async () => {
         // Update the last known state to prevent repeated calls
         lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
+        console.error(`🚨 Error sending request for ${pairing_code}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('🚨 Error in checkAndTriggerServos:', error);
+  }
+};
+
+// ✅ Run the schedule checker every 2 seconds
+setInterval(checkAndTriggerServos, 2000);
+
     
 
 
