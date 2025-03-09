@@ -271,7 +271,7 @@ app.post("/servo", async (req, res) => {
   }
  catch(error){
    
- }};
+ }});
 
 // GET request to fetch servo state for a specific device
 app.get("/servo", (req, res) => {
