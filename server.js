@@ -239,7 +239,16 @@ app.post("/servo", (req, res) => {
 
   // Log received pairingCode and state
   console.log(`Received POST request to set servo state for pairingCode: ${pairingCode}, state: ${state}`);
-  
+  await pool.query(
+      'INSERT INTO device_activity (pairing_code, state) VALUES (?, ?)',
+      [pairingCode, state]
+    );
+
+    res.json({ message: `Device turned ${state}` });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to control device' });
+  }
   // Set the servo state for the specific device
   espServoState[pairingCode] = state;
   console.log(`Updated state for device ${pairingCode}: ${state}`); 
@@ -348,18 +357,27 @@ app.get('/last-activity', (req, res) => {
     return res.status(400).json({ message: 'pairingCode is required' });
   }
 
-  // Query to fetch the last activity timestamp for the given pairingCode
-  pool.query('SELECT timestamp FROM device_activity WHERE pairing_code = ?', [pairingCode], (err, results) => {
-    if (err) {
-      console.error('Error fetching data from database:', err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
+  pool.query(
+    `SELECT timestamp 
+     FROM device_activity 
+     WHERE pairing_code = ? 
+     ORDER BY timestamp DESC 
+     LIMIT 1`,
+    [pairingCode],
+    (err, results) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
 
-    if (results.length === 0) {
-      return res.status(404).json({ message: 'Device not found' });
-    }
+      if (results.length === 0) {
+        return res.json({ 
+          timestamp: null,
+          activityText: 'No activity recorded'
+        });
+      }
 
-    const timestamp = new Date(results[0].timestamp);
+      const timestamp = new Date(results[0].timestamp);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
 
