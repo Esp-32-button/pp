@@ -318,35 +318,53 @@ app.get('/get-devices', async (req, res) => {
   }
 });
 
-// Unpair device endpoint
 app.post('/unpair', async (req, res) => {
   try {
     const { device_id, email } = req.body;
 
     if (!device_id || !email) {
-      return res.status(400).json({ error: 'Device ID and email are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Both device ID and email are required' 
+      });
     }
 
-    // Update the record by setting paired_device to null for the specified email
+    // Remove specific device from the array
     const result = await pool.query(
-      'UPDATE pairs SET paired_device = NULL WHERE email = $1 AND paired_device = $2 RETURNING *',
-      [email, device_id]
+      `UPDATE pairs 
+       SET paired_device = array_remove(paired_device, $1)
+       WHERE email = $2
+       AND $1 = ANY(paired_device)
+       RETURNING paired_device`,
+      [device_id, email]
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Device not found or already unpaired' });
+      return res.status(404).json({
+        success: false,
+        error: 'Device not found or already unpaired'
+      });
     }
 
-    res.json({ message: 'Device unpaired successfully' });
+    res.json({
+      success: true,
+      message: 'Device unpaired successfully',
+      remainingDevices: result.rows[0].paired_device || []
+    });
+
   } catch (error) {
-    console.error('Error unpairing device:', error);
-    res.status(500).json({ error: 'Failed to unpair device' });
+    console.error('Unpair error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to unpair device',
+      details: error.message
+    });
   }
 });
 
 
 
-// Helper function
+
 
 
 app.post('/schedule', async (req, res) => {
