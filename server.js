@@ -435,13 +435,14 @@ app.get('/schedules', async (req, res) => {
   }
 });
 
-// ✅ Check and Trigger Servo based on Schedule (every minute)
+
+// ✅ Automatically Check and Trigger Servo (Every Minute)
 const checkAndTriggerServos = async () => {
   try {
     const now = new Date();
-    const currentTime = now.toTimeString().split(' ')[0]; // Current time in HH:MM:SS
+    const currentTime = now.toTimeString().split(' ')[0]; // e.g., "14:30:00"
 
-    // Fetch matching schedules
+    // Fetch schedules matching the current time
     const { rows: schedules } = await pool.query(
       'SELECT pairing_code, "  actions" FROM schedules WHERE schedule_time = $1',
       [currentTime]
@@ -450,7 +451,7 @@ const checkAndTriggerServos = async () => {
     for (const { pairing_code, "  actions": action } of schedules) {
       console.log(`Triggering servo for ${pairing_code} to ${action}`);
 
-      // Notify ESP32
+      // Send the correct JSON payload to /servo
       await fetch('https://pp-kcfa.onrender.com/servo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -465,8 +466,8 @@ const checkAndTriggerServos = async () => {
   }
 };
 
-// Run the schedule checker every minute
-setInterval(checkAndTriggerServos, 60 * 1);
+// ✅ Run the schedule checker every minute
+setInterval(checkAndTriggerServos, 60 * 100);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
