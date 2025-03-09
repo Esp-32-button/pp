@@ -466,7 +466,7 @@ const checkAndTriggerServos = async () => {
 };
 
 // Run the schedule checker every minute
-setInterval(checkAndTriggerServos, 60 * 1000);
+setInterval(checkAndTriggerServos, 60 * 1);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
