@@ -382,23 +382,22 @@ app.get('/last-activity', (req, res) => {
 });
 
 app.post('/schedule', async (req, res) => {
-  const { pairingCode, scheduleTime, action } = req.body;
+  const { pairingCode, scheduleTime, action, createdAt } = req.body;
 
-  if (!pairingCode || !scheduleTime || !action) {
+  if (!pairingCode || !scheduleTime || !action || !createdAt) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    // Insert schedule into the database
     const result = await pool.query(
-      'INSERT INTO schedules (pairing_code, schedule_time, "  actions") VALUES ($1, $2, $3) RETURNING *',
-      [pairingCode, scheduleTime, action]
+      'INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at) VALUES ($1, $2, $3, $4) RETURNING *',
+      [pairingCode, scheduleTime, action, createdAt]
     );
 
-    return res.status(200).json(result.rows[0]);
+    return res.status(201).json({ message: 'Schedule saved successfully', schedule: result.rows[0] });
   } catch (error) {
-    console.error('Error saving schedule:', error);  // Log the error for debugging
-    return res.status(500).json({ error: 'Failed to save schedule', details: error.message });
+    console.error('Error saving schedule:', error);
+    return res.status(500).json({ error: 'Failed to save schedule' });
   }
 });
 
