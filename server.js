@@ -415,9 +415,6 @@ app.get('/schedules', async (req, res) => {
 });
 
 
-// Track the last state for each pairing code to avoid redundant API calls
-const lastServoState: Record<string, string> = {};
-
 const checkAndTriggerServos = async () => {
   try {
     console.log('⏰ Running schedule checker...');
