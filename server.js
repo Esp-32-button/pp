@@ -417,15 +417,22 @@ app.get('/schedules', async (req, res) => {
 
 const checkAndTriggerServos = async () => {
   try {
-    console.log('⏰ Running schedule checker...'); // <-- Add this log
+    console.log('⏰ Running schedule checker...');
 
     const now = new Date();
-    const currentTime = now.toTimeString().split(' ')[0]; // e.g., "14:30:00"
+    const currentTime = now.toTimeString().split(' ')[0]; // e.g., "00:00:05"
 
-    // Fetch schedules matching the current time
+    // Calculate time within the past 2 seconds
+    const pastTime = new Date(now.getTime() - 2000) // 2 seconds back
+      .toTimeString()
+      .split(' ')[0];
+
+    // Query to fetch schedules in the last 2 seconds
     const { rows: schedules } = await pool.query(
-      'SELECT pairing_code, "  actions" FROM schedules WHERE schedule_time = $1',
-      [currentTime]
+      `SELECT pairing_code, "  actions"
+       FROM schedules
+       WHERE schedule_time BETWEEN $1 AND $2`,
+      [pastTime, currentTime]
     );
 
     if (schedules.length === 0) {
@@ -441,7 +448,7 @@ const checkAndTriggerServos = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pairingCode: pairing_code,
-          state: action,
+          state: action.toUpperCase(), // Ensure it's either "ON" or "OFF"
         }),
       });
 
@@ -453,8 +460,9 @@ const checkAndTriggerServos = async () => {
   }
 };
 
-// Ensure the function is called every 2 seconds
+// Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
