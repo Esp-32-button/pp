@@ -266,7 +266,12 @@ app.post("/servo", async (req, res) => {
   // Set the servo state for the specific device
   espServoState[pairingCode] = state;
   console.log(`Updated state for device ${pairingCode}: ${state}`); 
-  res.json({ message: `Servo on device ${pairingCode} set to ${state}` });}};
+  res.json({ message: `Servo on device ${pairingCode} set to ${state}` });
+  
+  }
+ catch(error){
+   
+ }};
 
 // GET request to fetch servo state for a specific device
 app.get("/servo", (req, res) => {
