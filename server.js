@@ -228,7 +228,7 @@ let espServoState = {}; // Track servo state for each ESP32
 // POST request to set servo state for a specific device
 app.post("/servo", async (req, res) => {
   const { pairingCode, state } = req.body; // Expecting pairingCode and state
-  
+  try{
   if (state !== "ON" && state !== "OFF") {
     return res.status(400).json({ error: "Invalid state" });
   }
