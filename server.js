@@ -419,8 +419,9 @@ const checkAndTriggerServos = async () => {
   try {
     console.log('⏰ Running schedule checker...');
 
+    // Get UTC time in HH:MM format
     const now = new Date();
-    const utcHourMinute = now.toISOString().slice(11, 16); // e.g., "07:46"
+    const utcHourMinute = now.toISOString().slice(11, 16); // e.g., "07:48"
     console.log(`🔍 Current UTC time (HH:MM): ${utcHourMinute}`);
 
     // Check database connection
@@ -431,7 +432,7 @@ const checkAndTriggerServos = async () => {
     const { rows: schedules } = await pool.query(
       `SELECT pairing_code, "  actions"
        FROM schedules
-       WHERE TO_CHAR(schedule_time AT TIME ZONE 'UTC', 'HH24:MI') = $1`,
+       WHERE TO_CHAR(schedule_time, 'HH24:MI') = $1;`,
       [utcHourMinute]
     );
 
@@ -445,6 +446,7 @@ const checkAndTriggerServos = async () => {
     for (const { pairing_code, "  actions": action } of schedules) {
       console.log(`🚀 Triggering servo for ${pairing_code} with state ${action}`);
 
+      // Send the correct JSON payload to /servo
       const response = await fetch('https://pp-kcfa.onrender.com/servo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -462,7 +464,7 @@ const checkAndTriggerServos = async () => {
   }
 };
 
-// Run the schedule checker every 2 seconds
+// ✅ Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
 
 
