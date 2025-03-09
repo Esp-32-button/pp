@@ -239,7 +239,7 @@ app.post("/servo", async (req, res) => {
 
   // Log received pairingCode and state
   console.log(`Received POST request to set servo state for pairingCode: ${pairingCode}, state: ${state}`);
-  const [result] = await pool.promise().query(
+  const [result] = await pool.query(
   'INSERT INTO device_activity (pairing_code, state) VALUES ($1, $2)',
   [pairingCode, state]
     );
