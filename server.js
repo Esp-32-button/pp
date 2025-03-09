@@ -416,7 +416,6 @@ app.get('/schedules', async (req, res) => {
 
 
 // Track the last state for each pairing code
-// Track the last state for each pairing code
 const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
@@ -432,13 +431,13 @@ const checkAndTriggerServos = async () => {
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Fetch the latest schedule for each device where time has passed
+    // Query schedules matching the current time +/- 2 seconds for accuracy
     const { rows: schedules } = await pool.query(
       `
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') <= $1
+        WHERE schedule_time BETWEEN $1::time - INTERVAL '2 seconds' AND $1::time + INTERVAL '2 seconds'
         ORDER BY pairing_code, schedule_time DESC
       )
       SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
@@ -491,6 +490,7 @@ const checkAndTriggerServos = async () => {
 
 // ✅ Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 10000);
+
 
     
 
