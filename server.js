@@ -70,31 +70,7 @@ process.on('SIGINT', () => {
 
 const SECRET_KEY = '/cTFigjrKOOlRA7S1bI1Pxk809ZAN4gi5FJ3gmc4jKcQjfJST27NeZv6n8OJP6sU0+N7JJUAkc+DdsXwOIkQaw=='; // Use a secure key
 
-function calculateActivityTime(timestamp) {
-  const now = Date.now();
-  const diff = Math.floor((now - new Date(timestamp)) / 1000);
-  
-  const periods = [
-    { label: 'day', seconds: 86400 },
-    { label: 'hour', seconds: 3600 },
-    { label: 'minute', seconds: 60 }
-  ];
 
-  for (const period of periods) {
-    const count = Math.floor(diff / period.seconds);
-    if (count > 0) {
-      return {
-        timestamp,
-        activityText: `${count} ${period.label}${count !== 1 ? 's' : ''} ago`
-      };
-    }
-  }
-
-  return {
-    timestamp,
-    activityText: `${diff} seconds ago`
-  };
-}
 // Routes
 app.post('/register', async (req, res) => {
     const { email, password } = req.body;
@@ -368,47 +344,7 @@ app.post('/unpair', async (req, res) => {
   }
 });
 
-app.get('/last-activity', async (req, res) => {
-  try {
-    const { pairingCode } = req.query;
-    
-    if (!pairingCode) {
-      return res.status(400).json({
-        error: 'Missing pairingCode parameter'
-      });
-    }
 
-    const result = await pool.query(
-      `SELECT timestamp FROM device_activity
-       WHERE pairing_code = $1
-       ORDER BY timestamp DESC
-       LIMIT 1`,
-      [pairingCode]
-    );
-
-    if (!result.rows?.length) {
-      return res.json({
-        exists: false,
-        message: 'No activity found'
-      });
-    }
-
-    const activityData = calculateActivityTime(result.rows[0].timestamp);
-    
-    res.json({
-      exists: true,
-      ...activityData
-    });
-
-  } catch (error) {
-    console.error('Activity error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Could not retrieve activity data'
-      });
-    }
-  }
-});
 
 // Helper function
 
