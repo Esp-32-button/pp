@@ -420,19 +420,14 @@ const checkAndTriggerServos = async () => {
     console.log('⏰ Running schedule checker...');
 
     const now = new Date();
-    const currentTime = now.toTimeString().split(' ')[0]; // e.g., "00:00:05"
+    const currentHourMinute = now.toTimeString().slice(0, 5); // e.g., "00:00"
 
-    // Calculate time within the past 2 seconds
-    const pastTime = new Date(now.getTime() - 2000) // 2 seconds back
-      .toTimeString()
-      .split(' ')[0];
-
-    // Query to fetch schedules in the last 2 seconds
+    // Query schedules matching the current hour and minute (ignore seconds)
     const { rows: schedules } = await pool.query(
       `SELECT pairing_code, "  actions"
        FROM schedules
-       WHERE schedule_time BETWEEN $1 AND $2`,
-      [pastTime, currentTime]
+       WHERE TO_CHAR(schedule_time, 'HH24:MI') = $1`,
+      [currentHourMinute]
     );
 
     if (schedules.length === 0) {
@@ -448,7 +443,7 @@ const checkAndTriggerServos = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pairingCode: pairing_code,
-          state: action.toUpperCase(), // Ensure it's either "ON" or "OFF"
+          state: action.toUpperCase(), // Ensure "ON" or "OFF"
         }),
       });
 
@@ -460,7 +455,7 @@ const checkAndTriggerServos = async () => {
   }
 };
 
-// Run the schedule checker every 2 seconds
+// ✅ Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
 
 
