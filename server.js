@@ -419,21 +419,21 @@ const checkAndTriggerServos = async () => {
   try {
     console.log('⏰ Running schedule checker...');
 
-    // Get UTC time in HH:MM format
+    // Get the current UTC time in HH:MM:SS format
     const now = new Date();
-    const utcHourMinute = now.toISOString().slice(11, 16); // e.g., "07:48"
-    console.log(`🔍 Current UTC time (HH:MM): ${utcHourMinute}`);
+    const utcTime = now.toISOString().slice(11, 19); // e.g., "00:00:16"
+    console.log(`🔍 Current UTC time (HH:MM:SS): ${utcTime}`);
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Query schedules matching the current UTC time (ignoring seconds)
+    // Query schedules matching the exact UTC time
     const { rows: schedules } = await pool.query(
       `SELECT pairing_code, "  actions"
        FROM schedules
-       WHERE TO_CHAR(schedule_time, 'HH24:MI') = $1;`,
-      [utcHourMinute]
+       WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') = $1;`,
+      [utcTime]
     );
 
     if (schedules.length === 0) {
