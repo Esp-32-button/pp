@@ -446,12 +446,6 @@ const checkAndTriggerServos = async () => {
 
     // Process each schedule and update servo state
     for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
-      // Check if we've already sent this state to avoid redundant calls
-      if (lastServoState[pairing_code] === action.toUpperCase()) {
-        console.log(`🔔 State already sent for ${pairing_code}, skipping...`);
-        continue;
-      }
-
       console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
       // Send the correct JSON payload to /servo
@@ -467,9 +461,6 @@ const checkAndTriggerServos = async () => {
 
         const responseData = await response.json();
         console.log(`✅ ESP32 Response:`, responseData);
-
-        // Update the last known state to prevent repeated calls
-        lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
         console.error(`🚨 Error sending request for ${pairing_code}:`, error);
       }
