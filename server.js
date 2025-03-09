@@ -226,7 +226,7 @@ app.post("/validate", async (req, res) => {
 let espServoState = {}; // Track servo state for each ESP32
 
 // POST request to set servo state for a specific device
-app.post("/servo", (req, res) => {
+app.post("/servo", async (req, res) => {
   const { pairingCode, state } = req.body; // Expecting pairingCode and state
   
   if (state !== "ON" && state !== "OFF") {
@@ -239,7 +239,7 @@ app.post("/servo", (req, res) => {
 
   // Log received pairingCode and state
   console.log(`Received POST request to set servo state for pairingCode: ${pairingCode}, state: ${state}`);
-  await pool.query(
+  const [result] = await pool.promise().query(
       'INSERT INTO device_activity (pairing_code, state) VALUES (?, ?)',
       [pairingCode, state]
     );
