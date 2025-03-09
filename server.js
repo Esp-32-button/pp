@@ -420,19 +420,19 @@ const checkAndTriggerServos = async () => {
     console.log('⏰ Running schedule checker...');
 
     const now = new Date();
-    const currentHourMinute = now.toTimeString().slice(0, 5); // e.g., "00:00"
-    console.log(`🔍 Current time (HH:MM): ${currentHourMinute}`);
+    const utcHourMinute = now.toISOString().slice(11, 16); // e.g., "07:46"
+    console.log(`🔍 Current UTC time (HH:MM): ${utcHourMinute}`);
 
-    // Check if database connection is working
+    // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
-    console.log(`🗄️ Database Time:`, testDb.rows[0].db_time);
+    console.log(`🗄️ Database Time (UTC):`, testDb.rows[0].db_time);
 
-    // Query schedules matching the current hour and minute
+    // Query schedules matching the current UTC time (ignoring seconds)
     const { rows: schedules } = await pool.query(
       `SELECT pairing_code, "  actions"
        FROM schedules
-       WHERE TO_CHAR(schedule_time, 'HH24:MI') = $1`,
-      [currentHourMinute]
+       WHERE TO_CHAR(schedule_time AT TIME ZONE 'UTC', 'HH24:MI') = $1`,
+      [utcHourMinute]
     );
 
     if (schedules.length === 0) {
@@ -441,11 +441,10 @@ const checkAndTriggerServos = async () => {
       console.log(`✅ Found ${schedules.length} matching schedules:`, schedules);
     }
 
-    // Loop through schedules and trigger servo
+    // Trigger servo for each matching schedule
     for (const { pairing_code, "  actions": action } of schedules) {
       console.log(`🚀 Triggering servo for ${pairing_code} with state ${action}`);
 
-      // Ensure the ESP32 API is working
       const response = await fetch('https://pp-kcfa.onrender.com/servo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -465,6 +464,7 @@ const checkAndTriggerServos = async () => {
 
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
+
 
 
 
