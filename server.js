@@ -415,7 +415,6 @@ app.get('/schedules', async (req, res) => {
 
 
 // Track the last state for each pairing code
-// Track the last state for each pairing code
 const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
@@ -438,10 +437,10 @@ const checkAndTriggerServos = async () => {
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') = $1
+        WHERE TO_CHAR(schedule_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') = $1
         ORDER BY pairing_code, schedule_time DESC
       )
-      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
+      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
       FROM latest_schedule;
       `,
       [istFormattedTime]
@@ -491,6 +490,7 @@ const checkAndTriggerServos = async () => {
 
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
+
 
 
 
