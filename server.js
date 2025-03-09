@@ -240,8 +240,8 @@ app.post("/servo", async (req, res) => {
   // Log received pairingCode and state
   console.log(`Received POST request to set servo state for pairingCode: ${pairingCode}, state: ${state}`);
   const [result] = await pool.promise().query(
-      'INSERT INTO device_activity (pairing_code, state) VALUES (?, ?)',
-      [pairingCode, state]
+  'INSERT INTO device_activity (pairing_code, state) VALUES ($1, $2)',
+  [pairingCode, state]
     );
 
     res.json({ message: `Device turned ${state}` });
@@ -350,34 +350,32 @@ app.post('/unpair', async (req, res) => {
   }
 });
 
-app.get('/last-activity', (req, res) => {
-  const { pairingCode } = req.query;
+app.get('/last-activity', async (req, res) => { // Add async here
+  try {
+    const { pairingCode } = req.query;
 
-  if (!pairingCode) {
-    return res.status(400).json({ message: 'pairingCode is required' });
-  }
+    if (!pairingCode) {
+      return res.status(400).json({ message: 'pairingCode is required' });
+    }
 
-  pool.query(
-    `SELECT timestamp 
-     FROM device_activity 
-     WHERE pairing_code = ? 
-     ORDER BY timestamp DESC 
-     LIMIT 1`,
-    [pairingCode],
-    (err, results) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ message: 'Internal server error' });
-      }
+    // Proper async/await syntax
+    const { rows } = await pool.query(
+      `SELECT timestamp 
+       FROM device_activity 
+       WHERE pairing_code = $1 
+       ORDER BY timestamp DESC 
+       LIMIT 1`,
+      [pairingCode]
+    );
 
-      if (results.length === 0) {
-        return res.json({ 
-          timestamp: null,
-          activityText: 'No activity recorded'
-        });
-      }
+    if (rows.length === 0) {
+      return res.json({ 
+        timestamp: null,
+        activityText: 'No activity recorded'
+      });
+    }
 
-      const timestamp = new Date(results[0].timestamp);
+    const timestamp = new Date(rows[0].timestamp);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
 
@@ -395,8 +393,11 @@ app.get('/last-activity', (req, res) => {
       activityText = `${days} day${days === 1 ? '' : 's'} ago`;
     }
 
-    res.json({ timestamp: results[0].timestamp, activityText });
-  });
+    res.json({ timestamp: rows[0].timestamp, activityText });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 app.post('/schedule', async (req, res) => {
