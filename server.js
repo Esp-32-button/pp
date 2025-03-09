@@ -421,76 +421,82 @@ app.get('/schedules', async (req, res) => {
 
 
 // Track the last state for each pairing code
+// Track the last known state to prevent duplicate requests
 const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
   try {
-    console.log('Running schedule checker...');
+    console.log('⏰ Running schedule checker...');
 
-    // Get the current IST time in HH:MM:SS format
+    // Get the current IST time (HH:MM:SS format)
     const now = new Date();
-    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert to IST
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
     const istFormattedTime = istTime.toTimeString().slice(0, 8); // "HH:MM:SS"
-    console.log(`Current IST time (HH:MM:SS): ${istFormattedTime}`);
+    console.log(`🕒 Current IST time: ${istFormattedTime}`);
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
-    console.log('Database Time (UTC):', testDb.rows[0].db_time);
+    console.log('🌐 Database Time (UTC):', testDb.rows[0].db_time);
 
-    // Query schedules matching the current IST time
+    // Query schedules within a ±2 second range for accuracy
     const { rows: schedules } = await pool.query(
       `
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE TO_CHAR(schedule_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') = $1
+        WHERE schedule_time BETWEEN TIMEZONE('Asia/Kolkata', NOW()) - INTERVAL '2 seconds'
+                              AND TIMEZONE('Asia/Kolkata', NOW()) + INTERVAL '2 seconds'
         ORDER BY pairing_code, schedule_time DESC
       )
-      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
+      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
       FROM latest_schedule;
-      `,
-      [istFormattedTime]
+      `
     );
 
     if (schedules.length === 0) {
-      console.log('No matching schedules found.');
+      console.log('❌ No matching schedules found.');
       return;
     }
 
-    console.log(`Found ${schedules.length} schedules to process:`, schedules);
+    console.log(`✅ Found ${schedules.length} schedules to process:`, schedules);
 
-    // Process each schedule and update servo state
+    // Process each schedule and trigger the servo
     for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
-      // If the action is already applied, skip to avoid redundant requests
+      // Skip if the action is already performed
       if (lastServoState[pairing_code] === action.toUpperCase()) {
-        console.log(`State already sent for ${pairing_code}, skipping...`);
+        console.log(`🔔 State already sent for ${pairing_code}, skipping...`);
         continue;
       }
 
-      console.log(`Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
+      console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
-      // Send the correct JSON payload to /servo
+      // Prepare the payload for /servo
+      const payload = {
+        pairingCode: pairing_code,
+        state: action.toUpperCase(),
+      };
+
+      console.log('📤 Sending payload to /servo:', payload);
+
+      // Send the request to the ESP32
       try {
         const response = await fetch('https://pp-kcfa.onrender.com/servo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pairingCode: pairing_code,
-            state: action.toUpperCase(),
-          }),
+          body: JSON.stringify(payload),
         });
 
         const responseData = await response.json();
-        console.log('ESP32 Response:', responseData);
+        console.log('✅ ESP32 Response:', responseData);
 
-        // Update the last known state to prevent repeated calls
+        // Store the last known state to prevent redundant calls
         lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
-        console.error(`Error sending request for ${pairing_code}:`, error);
+        console.error(`❌ Error sending request for ${pairing_code}:`, error);
       }
     }
   } catch (error) {
-    console.error('Error in checkAndTriggerServos:', error);
+    console.error('❌ Error in checkAndTriggerServos:', error);
   }
 };
 
