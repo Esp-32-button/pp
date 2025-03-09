@@ -446,7 +446,7 @@ const checkAndTriggerServos = async () => {
       [currentTime]
     );
 
-    for (const { pairing_code, action } of schedules) {
+    for (const { pairing_code,   action } of schedules) {
       console.log(`Triggering servo for ${pairing_code} to ${action}`);
 
       // Send the command to the ESP32 via your API
