@@ -490,7 +490,7 @@ const checkAndTriggerServos = async () => {
 };
 
 // ✅ Run the schedule checker every 2 seconds
-setInterval(checkAndTriggerServos, 2000);
+setInterval(checkAndTriggerServos, 10000);
 
     
 
