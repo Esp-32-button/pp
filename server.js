@@ -415,34 +415,36 @@ app.get('/schedules', async (req, res) => {
 
 
 // Track the last state for each pairing code
+// Track the last state for each pairing code
 const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
   try {
     console.log('Running schedule checker...');
 
-    // Get the current UTC time in HH:MM:SS format
+    // Get the current IST time in HH:MM:SS format
     const now = new Date();
-    const utcTime = now.toISOString().slice(11, 19); // e.g., "00:00:16"
-    console.log(`Current UTC time (HH:MM:SS): ${utcTime}`);
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert to IST
+    const istFormattedTime = istTime.toTimeString().slice(0, 8); // "HH:MM:SS"
+    console.log(`Current IST time (HH:MM:SS): ${istFormattedTime}`);
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
     console.log('Database Time (UTC):', testDb.rows[0].db_time);
 
-    // Query schedules where the exact time is reached
+    // Query schedules matching the current IST time
     const { rows: schedules } = await pool.query(
       `
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE TO_CHAR(schedule_time, 'HH24:MI:SS') = $1
+        WHERE TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') = $1
         ORDER BY pairing_code, schedule_time DESC
       )
-      SELECT pairing_code, "  actions", TO_CHAR(schedule_time, 'HH24:MI:SS') AS schedule_time
+      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
       FROM latest_schedule;
       `,
-      [utcTime]
+      [istFormattedTime]
     );
 
     if (schedules.length === 0) {
