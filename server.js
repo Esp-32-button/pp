@@ -426,17 +426,17 @@ const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
   try {
-    console.log('');
+    
 
     // Get the current IST time (HH:MM:SS format)
     const now = new Date();
     const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
     const istFormattedTime = istTime.toTimeString().slice(0, 8); // "HH:MM:SS"
-    console.log(``);
+    
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
-    console.log('');
+   
 
     // Query schedules within a ±2 second range for accuracy
     const { rows: schedules } = await pool.query(
@@ -454,17 +454,17 @@ const checkAndTriggerServos = async () => {
     );
 
     if (schedules.length === 0) {
-      console.log('');
+  
       return;
     }
 
-    console.log('');
+   
 
     // Process each schedule and trigger the servo
     for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
       // Skip if the action is already performed
       if (lastServoState[pairing_code] === action.toUpperCase()) {
-        console.log(``);
+      
         continue;
       }
 
@@ -476,7 +476,7 @@ const checkAndTriggerServos = async () => {
         state: action.toUpperCase(),
       };
 
-      console.log('📤 Sending payload to /servo:', payload);
+     
 
       // Send the request to the ESP32
       try {
