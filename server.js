@@ -384,17 +384,16 @@ app.get('/last-activity', (req, res) => {
 app.post('/schedule', async (req, res) => {
   const { pairingCode, scheduleTime, action, createdAt } = req.body;
 
-  // Validate inputs
   if (!pairingCode || !scheduleTime || !action || !createdAt) {
-    console.error('❌ Missing required fields:', req.body);
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    // Insert schedule with correct timestamp
+    // Ensure scheduleTime and createdAt are properly cast to TIMESTAMP
     const result = await pool.query(
       `INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at)
-       VALUES ($1, $2::timestamp with time zone, $3, $4::timestamp with time zone) RETURNING *;`,
+       VALUES ($1, $2::timestamp with time zone, $3, $4::timestamp with time zone)
+       RETURNING *;`,
       [pairingCode, scheduleTime, action, createdAt]
     );
 
@@ -405,6 +404,7 @@ app.post('/schedule', async (req, res) => {
     return res.status(500).json({ error: 'Failed to save schedule', details: error.message });
   }
 });
+
 
 
 
