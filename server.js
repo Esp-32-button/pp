@@ -239,16 +239,34 @@ app.post("/servo", async (req, res) => {
 
   // Log received pairingCode and state
   console.log(`Received POST request to set servo state for pairingCode: ${pairingCode}, state: ${state}`);
-  const [result] = await pool.query(
-  'INSERT INTO device_activity (pairing_code, state) VALUES ($1, $2)',
-  [pairingCode, state]
+  const deviceResponse = await fetch('https://pp-kcfa.onrender.com/last-activity', {
+      method: 'POST',
+      body: JSON.stringify({ state, pairingCode })
+    });
+
+    if (!deviceResponse.ok) {
+      throw new Error('Device control failed');
+    }
+
+    // 2. Then record activity
+    await pool.query(
+      'INSERT INTO device_activity (pairing_code, state) VALUES ($1, $2)',
+      [pairingCode, state]
     );
 
-    res.json({ message: `Device turned ${state}` });
+    // 3. Send single response
+    res.json({ 
+      success: true,
+      message: `Device ${pairingCode} turned ${state}`
+    });
+
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to control device' });
-  }
+    console.error('Endpoint error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Operation failed'
+      });}
   // Set the servo state for the specific device
   espServoState[pairingCode] = state;
   console.log(`Updated state for device ${pairingCode}: ${state}`); 
@@ -350,55 +368,74 @@ app.post('/unpair', async (req, res) => {
   }
 });
 
-app.get('/last-activity', async (req, res) => { // Add async here
+app.get('/last-activity', async (req, res) => {
   try {
     const { pairingCode } = req.query;
-
+    
     if (!pairingCode) {
-      return res.status(400).json({ message: 'pairingCode is required' });
+      return res.status(400).json({
+        error: 'Missing pairingCode parameter'
+      });
     }
 
-    // Proper async/await syntax
-    const { rows } = await pool.query(
-      `SELECT timestamp 
-       FROM device_activity 
-       WHERE pairing_code = $1 
-       ORDER BY timestamp DESC 
+    const result = await pool.query(
+      `SELECT timestamp FROM device_activity
+       WHERE pairing_code = $1
+       ORDER BY timestamp DESC
        LIMIT 1`,
       [pairingCode]
     );
 
-    if (rows.length === 0) {
-      return res.json({ 
-        timestamp: null,
-        activityText: 'No activity recorded'
+    if (!result.rows?.length) {
+      return res.json({
+        exists: false,
+        message: 'No activity found'
       });
     }
 
-    const timestamp = new Date(rows[0].timestamp);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
+    const activityData = this.calculateActivityTime(result.rows[0].timestamp);
+    
+    res.json({
+      exists: true,
+      ...activityData
+    });
 
-    let activityText;
-    if (diffInSeconds < 60) {
-      activityText = `${diffInSeconds} seconds ago`;
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      activityText = `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      activityText = `${hours} hour${hours === 1 ? '' : 's'} ago`;
-    } else {
-      const days = Math.floor(diffInSeconds / 86400);
-      activityText = `${days} day${days === 1 ? '' : 's'} ago`;
+  } catch (error) {
+    console.error('Activity error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Could not retrieve activity data'
+      });
     }
-
-    res.json({ timestamp: rows[0].timestamp, activityText });
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Helper function
+calculateActivityTime(timestamp) {
+  const now = Date.now();
+  const diff = Math.floor((now - new Date(timestamp)) / 1000);
+  
+  const periods = [
+    { label: 'day', seconds: 86400 },
+    { label: 'hour', seconds: 3600 },
+    { label: 'minute', seconds: 60 }
+  ];
+
+  for (const period of periods) {
+    const count = Math.floor(diff / period.seconds);
+    if (count > 0) {
+      return {
+        timestamp,
+        activityText: `${count} ${period.label}${count !== 1 ? 's' : ''} ago`
+      };
+    }
+  }
+
+  return {
+    timestamp,
+    activityText: `${diff} seconds ago`
+  };
+}
 
 app.post('/schedule', async (req, res) => {
   const { pairingCode, scheduleTime, action, createdAt } = req.body;
