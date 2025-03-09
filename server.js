@@ -221,28 +221,7 @@ app.post("/validate", async (req, res) => {
 
 
 
-/*app.post('/change_wifi', async (req, res) => {
-    const { ssid, password,ipAddress } = req.body;
 
-    if (!ssid || !password) {
-        return res.status(400).json({ error: 'SSID and Password are required.' });
-    }
-
-    try {
-        const response = await axios.post('http://ipAddress/change_wifi', {
-            ssid,
-            password,
-        });
-
-        if (response.status === 200) {
-            res.json({ message: 'Wi-Fi information updated successfully.' });
-        } else {
-            res.status(500).json({ error: 'Failed to update Wi-Fi on the ESP32.' });
-        }
-    } catch (error) {
-        res.status(500).json({ error: 'Error communicating with ESP32.' });
-    }
-});*/
 
 let espServoState = {}; // Track servo state for each ESP32
 
@@ -436,9 +415,10 @@ app.get('/schedules', async (req, res) => {
 });
 
 
-// ✅ Automatically Check and Trigger Servo (Every Minute)
 const checkAndTriggerServos = async () => {
   try {
+    console.log('⏰ Running schedule checker...'); // <-- Add this log
+
     const now = new Date();
     const currentTime = now.toTimeString().split(' ')[0]; // e.g., "14:30:00"
 
@@ -448,11 +428,15 @@ const checkAndTriggerServos = async () => {
       [currentTime]
     );
 
+    if (schedules.length === 0) {
+      console.log('❌ No matching schedules found.');
+    }
+
     for (const { pairing_code, "  actions": action } of schedules) {
-      console.log(`Triggering servo for ${pairing_code} to ${action}`);
+      console.log(`🚀 Triggering servo for ${pairing_code} with state ${action}`);
 
       // Send the correct JSON payload to /servo
-      await fetch('https://pp-kcfa.onrender.com/servo', {
+      const response = await fetch('https://pp-kcfa.onrender.com/servo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -460,13 +444,16 @@ const checkAndTriggerServos = async () => {
           state: action,
         }),
       });
+
+      const responseData = await response.json();
+      console.log(`✅ ESP32 Response:`, responseData);
     }
   } catch (error) {
-    console.error('Error checking schedules:', error);
+    console.error('🚨 Error in checkAndTriggerServos:', error);
   }
 };
 
-// Run the schedule checker every 2 seconds (2000 milliseconds)
+// Ensure the function is called every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
 
 app.listen(port, () => {
