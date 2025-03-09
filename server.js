@@ -466,8 +466,8 @@ const checkAndTriggerServos = async () => {
   }
 };
 
-// ✅ Run the schedule checker every minute
-setInterval(checkAndTriggerServos, 60 * 100);
+// Run the schedule checker every 2 seconds (2000 milliseconds)
+setInterval(checkAndTriggerServos, 2000);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
