@@ -397,7 +397,7 @@ app.post('/schedule', async (req, res) => {
 // Endpoint to fetch schedules
 app.get('/schedules', async (req, res) => {
   try {
-    const result = await client.query('SELECT * FROM schedules');
+    const result = await pool.query('SELECT * FROM schedules');
     return res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error fetching schedules:', error);
