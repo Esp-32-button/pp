@@ -354,6 +354,24 @@ app.post('/unpair', async (req, res) => {
 });
 
 
+app.post("/isOnline", async (req, res) => {
+  const { pairingCode } = req.body;
+
+  // Check if pairingCode is provided
+  if (!pairingCode) {
+    return res.status(400).json({ error: 'Missing pairing code' }); // Add error message
+  }
+
+  // Check if pairingCode is valid
+  if (espPairingCodes.includes(String(pairingCode))) {
+    return res.json({ state: 'ONLINE' }); // Valid code: device is online
+  } else {
+    return res.json({ state: 'OFFLINE' }); // Invalid code: device is offline
+  }
+});
+
+
+
 app.post('/schedule', async (req, res) => {
   const { pairingCode, scheduleTime, action, createdAt } = req.body;
 
