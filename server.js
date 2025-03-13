@@ -362,6 +362,7 @@ app.post('/schedule', async (req, res) => {
   }
 
   try {
+    scheduleTime= scheduleTime + 5:30;
     // Ensure scheduleTime and createdAt are properly cast to TIMESTAMP
     const result = await pool.query(
       `INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at)
