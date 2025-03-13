@@ -359,7 +359,7 @@ app.post('/unpair', async (req, res) => {
 
 
 app.post('/schedule', async (req, res) => {
-  const { pairingCode, scheduleTime, action, createdAt } = req.body;
+  const { pairingCode, scheduleTime,"  actions", createdAt } = req.body;
 
   if (!pairingCode || !scheduleTime || !action || !createdAt) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -418,7 +418,7 @@ const checkAndTriggerServos = async () => {
     // Query schedules within a ±2 second range for accuracy
     const { rows: schedules } = await pool.query(`
   WITH latest_schedule AS (
-    SELECT DISTINCT ON (pairing_code) pairing_code, action, schedule_time
+    SELECT DISTINCT ON (pairing_code) pairing_code,"  actions", schedule_time
     FROM schedules
     WHERE 
       schedule_time AT TIME ZONE 'Asia/Kolkata'  -- Convert stored UTC time to IST
@@ -426,7 +426,7 @@ const checkAndTriggerServos = async () => {
       AND NOW() + INTERVAL '2 seconds'
     ORDER BY pairing_code, schedule_time DESC
   )
-  SELECT pairing_code, action, 
+  SELECT pairing_code,"  actions", 
     TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
   FROM latest_schedule;
 `);
@@ -439,7 +439,7 @@ const checkAndTriggerServos = async () => {
    
 
     // Process each schedule and trigger the servo
-     for (const { pairing_code, action, schedule_time } of schedules) {
+     for (const { pairing_code,"  actions", schedule_time } of schedules) {
     const now = Date.now();
       // Skip if the action is already performed
         if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
