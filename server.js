@@ -431,7 +431,7 @@ const checkAndTriggerServos = async () => {
     if (schedules.length === 0) return;
 
     // Process each schedule and trigger the servo
-    for (const { pairing_code, "  action": actions, schedule_time } of schedules) {
+    for (const { pairing_code,  actions, schedule_time } of schedules) {
       const now = Date.now();
       // Skip if triggered recently
       if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
