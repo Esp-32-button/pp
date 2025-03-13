@@ -371,7 +371,7 @@ app.post('/schedule', async (req, res) => {
       `INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at)
        VALUES ($1, $2::timestamp with time zone, $3, $4::timestamp with time zone)
        RETURNING *;`,
-      [pairingCode, scheduleTime, action, createdAt]
+      [pairingCode, scheduleTime,"  actions", createdAt]
     );
 
     console.log('✅ Schedule saved successfully:', result.rows[0]);
