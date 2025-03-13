@@ -404,84 +404,49 @@ const lastTriggeredTime = {};
 
 const checkAndTriggerServos = async () => {
   try {
-    
-
     // Get the current IST time (HH:MM:SS format)
     const now = new Date();
     const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
     const istFormattedTime = istTime.toTimeString().slice(0, 8); // "HH:MM:SS"
-    
 
     // Check database connection
     const testDb = await pool.query('SELECT NOW() AS db_time;');
-   
 
-    // Query schedules within a ±2 second range for accuracy
+    // Query schedules in UTC time range
     const { rows: schedules } = await pool.query(`
-  WITH latest_schedule AS (
-    SELECT DISTINCT ON (pairing_code) pairing_code,"  actions", schedule_time
-    FROM schedules
-    WHERE 
-      schedule_time AT TIME ZONE 'Asia/Kolkata'  -- Convert stored UTC time to IST
-      BETWEEN NOW() - INTERVAL '2 seconds'
-      AND NOW() + INTERVAL '2 seconds'
-    ORDER BY pairing_code, schedule_time DESC
-  )
-  SELECT pairing_code,"  actions", 
-    TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
-  FROM latest_schedule;
-`);
-
-    if (schedules.length === 0) {
-  
-      return;
-    }
-
-   
-
-    // Process each schedule and trigger the servo
-     for (const { pairing_code, actions, schedule_time } of schedules) {
-    const now = Date.now();
-      // Skip if the action is already performed
-        if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
-      continue;
-    }
-
-    console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
-
-      console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
-
-      // Prepare the payload for /servo
-      const payload = {
-        pairingCode: pairing_code,
-        state: action.toUpperCase(),
-      };
-
-     
-
-      // Send the request to the ESP32
-const checkAndTriggerServos = async () => {
-  try {
-    // Query schedules in UTC (no time zone conversion needed)
-    const { rows: schedules } = await pool.query(`
-      SELECT pairing_code, "  action" AS actions, schedule_time
-      FROM schedules
-      WHERE schedule_time BETWEEN NOW() - INTERVAL '2 seconds' 
-                             AND NOW() + INTERVAL '2 seconds';
+      WITH latest_schedule AS (
+        SELECT DISTINCT ON (pairing_code) pairing_code, "  action", schedule_time
+        FROM schedules
+        WHERE 
+          schedule_time AT TIME ZONE 'Asia/Kolkata'
+          BETWEEN NOW() - INTERVAL '2 seconds'
+          AND NOW() + INTERVAL '2 seconds'
+        ORDER BY pairing_code, schedule_time DESC
+      )
+      SELECT pairing_code, "  action", 
+        TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
+      FROM latest_schedule;
     `);
 
     if (schedules.length === 0) return;
 
-    const nowTimestamp = Date.now();
-    for (const { pairing_code, actions, schedule_time } of schedules) {
-      // Skip if triggered in the last 2 seconds
-      if (lastTriggeredTime[pairing_code] && nowTimestamp - lastTriggeredTime[pairing_code] < 2000) {
+    // Process each schedule and trigger the servo
+    for (const { pairing_code, "  action": actions, schedule_time } of schedules) {
+      const now = Date.now();
+      // Skip if triggered recently
+      if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
         continue;
       }
 
-      console.log(`🚀 Triggering ${pairing_code} to ${actions} (Scheduled at ${schedule_time})`);
-      const payload = { pairingCode: pairing_code, state: actions.toUpperCase() };
+      console.log(`🚀 Triggering servo for ${pairing_code} to ${actions} (Scheduled at ${schedule_time})`);
 
+      // Prepare the payload for /servo
+      const payload = {
+        pairingCode: pairing_code,
+        state: actions.toUpperCase(),
+      };
+
+      // Send the request to the ESP32
       try {
         const response = await fetch('https://pp-kcfa.onrender.com/servo', {
           method: 'POST',
@@ -490,18 +455,18 @@ const checkAndTriggerServos = async () => {
         });
         const responseData = await response.json();
         console.log('✅ ESP32 Response:', responseData);
-        lastTriggeredTime[pairing_code] = nowTimestamp;
+        lastTriggeredTime[pairing_code] = now;
       } catch (error) {
-        console.error(`❌ ${pairing_code} Failed:`, error);
+        console.error(`❌ Error sending request for ${pairing_code}:`, error);
       }
     }
   } catch (error) {
-    console.error('❌ Schedule Check Error:', error);
+    console.error('❌ Error in checkAndTriggerServos:', error);
   }
-};
+}; // <-- Close the function properly
+
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
