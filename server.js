@@ -399,7 +399,7 @@ app.get('/schedules', async (req, res) => {
 
 // Track the last state for each pairing code
 // Track the last known state to prevent duplicate requests
-const lastServoState = {};
+const lastTriggeredTime = {}; 
 
 const checkAndTriggerServos = async () => {
   try {
@@ -416,19 +416,20 @@ const checkAndTriggerServos = async () => {
    
 
     // Query schedules within a ±2 second range for accuracy
-    const { rows: schedules } = await pool.query(
-      `
-      WITH latest_schedule AS (
-        SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
-        FROM schedules
-        WHERE schedule_time BETWEEN TIMEZONE('Asia/Kolkata', NOW()) - INTERVAL '2 seconds'
-                              AND TIMEZONE('Asia/Kolkata', NOW()) + INTERVAL '2 seconds'
-        ORDER BY pairing_code, schedule_time DESC
-      )
-      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
-      FROM latest_schedule;
-      `
-    );
+    const { rows: schedules } = await pool.query(`
+  WITH latest_schedule AS (
+    SELECT DISTINCT ON (pairing_code) pairing_code, action, schedule_time
+    FROM schedules
+    WHERE 
+      schedule_time AT TIME ZONE 'Asia/Kolkata'  -- Convert stored UTC time to IST
+      BETWEEN NOW() - INTERVAL '2 seconds'
+      AND NOW() + INTERVAL '2 seconds'
+    ORDER BY pairing_code, schedule_time DESC
+  )
+  SELECT pairing_code, action, 
+    TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
+  FROM latest_schedule;
+`);
 
     if (schedules.length === 0) {
   
@@ -438,12 +439,14 @@ const checkAndTriggerServos = async () => {
    
 
     // Process each schedule and trigger the servo
-    for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
+     for (const { pairing_code, action, schedule_time } of schedules) {
+    const now = Date.now();
       // Skip if the action is already performed
-      if (lastServoState[pairing_code] === action.toUpperCase()) {
-      
-        continue;
-      }
+        if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
+      continue;
+    }
+
+    console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
       console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
