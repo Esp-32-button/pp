@@ -359,7 +359,7 @@ app.post('/unpair', async (req, res) => {
 
 
 app.post('/schedule', async (req, res) => {
-  const { pairingCode, scheduleTime,"  actions", createdAt } = req.body;
+  const { pairingCode, scheduleTime,  actions, createdAt } = req.body;
 
   if (!pairingCode || !scheduleTime || !action || !createdAt) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -439,7 +439,7 @@ const checkAndTriggerServos = async () => {
    
 
     // Process each schedule and trigger the servo
-     for (const { pairing_code,"  actions", schedule_time } of schedules) {
+     for (const { pairing_code, actions, schedule_time } of schedules) {
     const now = Date.now();
       // Skip if the action is already performed
         if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
