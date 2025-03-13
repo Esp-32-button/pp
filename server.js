@@ -481,37 +481,29 @@ const checkAndTriggerServos = async () => {
 setInterval(checkAndTriggerServos, 2000);
 
 
-app.post('/device-names', async (req, res) => {
+// backend (Node.js/Express)
+router.post('/device-name', async (req, res) => {
   try {
-    const { pairingCodes } = req.body;
-
-    // Validate request
-    if (!Array.isArray(pairingCodes)) {
-      return res.status(400).json({ error: 'Invalid request format' });
+    const { device_id, email, device_name } = req.body;
+    
+    // Validate input
+    if (!device_id || !email || !device_name) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get device names from database
-    const query = {
-      text: `
-        SELECT device_id, device_name 
-        FROM devices 
-        WHERE device_id = ANY($1)
-      `,
-      values: [pairingCodes]
-    };
+    // Update database (example using PostgreSQL)
+    const result = await pool.query(
+      'UPDATE devices SET device_name = $1 WHERE device_id = $2 AND email = $3 RETURNING *',
+      [device_name, device_id, email]
+    );
 
-    const result = await pool.query(query);
-    
-    // Convert to { device_id: device_name } format
-    const deviceNamesMap = {};
-    result.rows.forEach(device => {
-      deviceNamesMap[device.device_id] = device.device_name;
-    });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
 
-    res.json(deviceNamesMap);
-
+    res.json({ success: true, device: result.rows[0] });
   } catch (error) {
-    console.error('Error fetching device names:', error);
+    console.error('Error updating device:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
