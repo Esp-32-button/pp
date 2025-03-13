@@ -519,7 +519,7 @@ app.post("/isOnline", async (req, res) => {
         return res.json({ message:'ONLINE'});
      }
      else{
-        return res.json({ message:'OFFLINE'});
+        return res.json({ message:'ONLINE'});
      }});
   
 app.listen(port, () => {
