@@ -516,10 +516,10 @@ app.post("/isOnline", async (req, res) => {
         return res.status(400).json({ error: '' });
     }
      if (espPairingCodes.includes(String(pairingCode))) {
-        return res.status(500).json({'ONLINE'});
+        return res.json({'ONLINE'});
      }
      else{
-        return res.status(500).json({'OFFLINE'});
+        return res.json({'OFFLINE'});
      }});
   
 app.listen(port, () => {
