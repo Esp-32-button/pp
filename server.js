@@ -365,24 +365,25 @@ app.post('/schedule', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  try {
-    // Ensure scheduleTime and createdAt are properly cast to TIMESTAMP
+ try {
+    const parseISTTime = (timeStr) => new Date(`${timeStr}+05:30`);
+    const scheduleTimeUTC = parseISTTime(scheduleTime).toISOString();
+    const createdAtUTC = parseISTTime(createdAt).toISOString();
+
     const result = await pool.query(
-      `INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at)
-       VALUES ($1, $2::timestamp with time zone, $3, $4::timestamp with time zone)
+      `INSERT INTO schedules (pairing_code, schedule_time, "  action", created_at)
+       VALUES ($1, $2::timestamptz, $3, $4::timestamptz)
        RETURNING *;`,
-      [pairingCode, scheduleTime,"  actions", createdAt]
+      [pairingCode, scheduleTimeUTC,  actions, createdAtUTC]
     );
 
-    console.log('✅ Schedule saved successfully:', result.rows[0]);
-    return res.status(201).json({ message: 'Schedule saved successfully!', schedule: result.rows[0] });
+    console.log('✅ Schedule saved:', result.rows[0]);
+    return res.status(201).json({ message: 'Schedule saved!', schedule: result.rows[0] });
   } catch (error) {
     console.error('❌ Error saving schedule:', error);
     return res.status(500).json({ error: 'Failed to save schedule', details: error.message });
   }
 });
-
-
 
 
 // Endpoint to fetch schedules
@@ -459,27 +460,45 @@ const checkAndTriggerServos = async () => {
      
 
       // Send the request to the ESP32
+const checkAndTriggerServos = async () => {
+  try {
+    // Query schedules in UTC (no time zone conversion needed)
+    const { rows: schedules } = await pool.query(`
+      SELECT pairing_code, "  action" AS actions, schedule_time
+      FROM schedules
+      WHERE schedule_time BETWEEN NOW() - INTERVAL '2 seconds' 
+                             AND NOW() + INTERVAL '2 seconds';
+    `);
+
+    if (schedules.length === 0) return;
+
+    const nowTimestamp = Date.now();
+    for (const { pairing_code, actions, schedule_time } of schedules) {
+      // Skip if triggered in the last 2 seconds
+      if (lastTriggeredTime[pairing_code] && nowTimestamp - lastTriggeredTime[pairing_code] < 2000) {
+        continue;
+      }
+
+      console.log(`🚀 Triggering ${pairing_code} to ${actions} (Scheduled at ${schedule_time})`);
+      const payload = { pairingCode: pairing_code, state: actions.toUpperCase() };
+
       try {
         const response = await fetch('https://pp-kcfa.onrender.com/servo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-
         const responseData = await response.json();
         console.log('✅ ESP32 Response:', responseData);
-
-        // Store the last known state to prevent redundant calls
-        lastServoState[pairing_code] = action.toUpperCase();
+        lastTriggeredTime[pairing_code] = nowTimestamp;
       } catch (error) {
-        console.error(`❌ Error sending request for ${pairing_code}:`, error);
+        console.error(`❌ ${pairing_code} Failed:`, error);
       }
     }
   } catch (error) {
-    console.error('❌ Error in checkAndTriggerServos:', error);
+    console.error('❌ Schedule Check Error:', error);
   }
 };
-
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
 
