@@ -362,14 +362,14 @@ app.post('/schedule', async (req, res) => {
   }
 
   try {
-    scheduleTime= scheduleTime + 5:30;
-    // Ensure scheduleTime and createdAt are properly cast to TIMESTAMP
+    // Add 5 hours and 30 minutes to scheduleTime
     const result = await pool.query(
-      `INSERT INTO schedules (pairing_code, schedule_time, "  actions", created_at)
-       VALUES ($1, $2::timestamp with time zone, $3, $4::timestamp with time zone)
+      `INSERT INTO schedules (pairing_code, schedule_time, actions, created_at)
+       VALUES ($1, ($2::timestamp with time zone + INTERVAL '5 hours 30 minutes'), $3, $4::timestamp with time zone)
        RETURNING *;`,
       [pairingCode, scheduleTime, action, createdAt]
     );
+
 
     console.log('✅ Schedule saved successfully:', result.rows[0]);
     return res.status(201).json({ message: 'Schedule saved successfully!', schedule: result.rows[0] });
