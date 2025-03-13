@@ -361,7 +361,7 @@ app.post('/unpair', async (req, res) => {
 app.post('/schedule', async (req, res) => {
   const { pairingCode, scheduleTime,  actions, createdAt } = req.body;
 
-  if (!pairingCode || !scheduleTime || !action || !createdAt) {
+  if (!pairingCode || !scheduleTime || !createdAt) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
