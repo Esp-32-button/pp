@@ -480,6 +480,41 @@ const checkAndTriggerServos = async () => {
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
 
+
+app.post('/device-names', async (req, res) => {
+  try {
+    const { pairingCodes } = req.body;
+
+    // Validate request
+    if (!Array.isArray(pairingCodes)) {
+      return res.status(400).json({ error: 'Invalid request format' });
+    }
+
+    // Get device names from database
+    const query = {
+      text: `
+        SELECT device_id, device_name 
+        FROM devices 
+        WHERE device_id = ANY($1)
+      `,
+      values: [pairingCodes]
+    };
+
+    const result = await pool.query(query);
+    
+    // Convert to { device_id: device_name } format
+    const deviceNamesMap = {};
+    result.rows.forEach(device => {
+      deviceNamesMap[device.device_id] = device.device_name;
+    });
+
+    res.json(deviceNamesMap);
+
+  } catch (error) {
+    console.error('Error fetching device names:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
