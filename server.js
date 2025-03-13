@@ -519,9 +519,9 @@ app.post("/isOnline", async (req, res) => {
 
   // Check if pairingCode is valid
   if (espPairingCodes.includes(String(pairingCode))) {
-    return res.json({ state: 'ONLINE' }); // Valid code: device is online
+    return res.json({ state: 'ONnLINE' }); // Valid code: device is online
   } else {
-    return res.json({ state: 'OFFLINE' }); // Invalid code: device is offline
+    return res.json({ state: 'ONLINE' }); // Invalid code: device is offline
   }
 });
 app.listen(port, () => {
