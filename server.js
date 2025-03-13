@@ -482,7 +482,7 @@ setInterval(checkAndTriggerServos, 2000);
 
 
 // backend (Node.js/Express)
-router.post('/device-name', async (req, res) => {
+app.post('/device-name', async (req, res) => {
   try {
     const { device_id, email, device_name } = req.body;
     
