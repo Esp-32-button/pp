@@ -509,18 +509,18 @@ app.post('/device-name', async (req, res) => {
 });
 
 
-app.post("/isOnline", async (req, res) => {
-    const {pairingCode } = req.body;
+//app.post("/isOnline", async (req, res) => {
+ //   const {pairingCode } = req.body;
 
-    if (!pairingCode) {
-        return res.status(400).json({ error: '' });
-    }
-     if (espPairingCodes.includes(String(pairingCode))) {
-        return res.json({ message:'ONLINE'});
-     }
-     else{
-        return res.json({ message:'ONLINE'});
-     }});
+  //  if (!pairingCode) {
+    //    return res.status(400).json({ error: '' });
+  //  }
+  //   if (espPairingCodes.includes(String(pairingCode))) {
+   //     return res.json({ message:'ONLINE'});
+   //  }
+   //  else{
+    //    return res.json({ message:'ONLINE'});
+   //  }});
   
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
