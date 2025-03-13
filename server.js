@@ -355,7 +355,7 @@ app.post('/unpair', async (req, res) => {
 
 
 app.post("/isOnline", async (req, res) => {
-  const { pairingCode } = req.body;
+  const { pairingCode } = req.query;
 
   // Check if pairingCode is provided
   if (!pairingCode) {
