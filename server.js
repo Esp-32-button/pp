@@ -364,7 +364,7 @@ app.post('/schedule', async (req, res) => {
   try {
     // Add 5 hours and 30 minutes to scheduleTime
     const result = await pool.query(
-      `INSERT INTO schedules (pairing_code, schedule_time, actions, created_at)
+      `INSERT INTO schedules (pairing_code, schedule_time,"  actions", created_at)
        VALUES ($1, ($2::timestamp with time zone + INTERVAL '5 hours 30 minutes'), $3, $4::timestamp with time zone)
        RETURNING *;`,
       [pairingCode, scheduleTime, action, createdAt]
