@@ -358,34 +358,6 @@ app.post('/unpair', async (req, res) => {
 
 
 
-app.post('/schedule', async (req, res) => {
-  const { pairingCode, scheduleTime,  actions, createdAt } = req.body;
-
-  if (!pairingCode || !scheduleTime || !createdAt) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
- try {
-    const parseISTTime = (timeStr) => new Date(`${timeStr}+05:30`);
-    const scheduleTimeUTC = parseISTTime(scheduleTime).toISOString();
-    const createdAtUTC = parseISTTime(createdAt).toISOString();
-
-    const result = await pool.query(
-      `INSERT INTO schedules (pairing_code, schedule_time, "  action", created_at)
-       VALUES ($1, $2::timestamptz, $3, $4::timestamptz)
-       RETURNING *;`,
-      [pairingCode, scheduleTimeUTC,  actions, createdAtUTC]
-    );
-
-    console.log('✅ Schedule saved:', result.rows[0]);
-    return res.status(201).json({ message: 'Schedule saved!', schedule: result.rows[0] });
-  } catch (error) {
-    console.error('❌ Error saving schedule:', error);
-    return res.status(500).json({ error: 'Failed to save schedule', details: error.message });
-  }
-});
-
-
 // Endpoint to fetch schedules
 app.get('/schedules', async (req, res) => {
   try {
@@ -400,61 +372,87 @@ app.get('/schedules', async (req, res) => {
 
 // Track the last state for each pairing code
 // Track the last known state to prevent duplicate requests
-const lastTriggeredTime = {}; 
+const lastServoState = {};
 
 const checkAndTriggerServos = async () => {
   try {
+    
+
     // Get the current IST time (HH:MM:SS format)
     const now = new Date();
     const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC to IST
     const istFormattedTime = istTime.toTimeString().slice(0, 8); // "HH:MM:SS"
+    
 
-     const { rows: schedules } = await pool.query(`
+    // Check database connection
+    const testDb = await pool.query('SELECT NOW() AS db_time;');
+   
+
+    // Query schedules within a ±2 second range for accuracy
+    const { rows: schedules } = await pool.query(
+      `
       WITH latest_schedule AS (
         SELECT DISTINCT ON (pairing_code) pairing_code, "  actions", schedule_time
         FROM schedules
-        WHERE 
-          schedule_time AT TIME ZONE 'Asia/Kolkata'
-          BETWEEN NOW() - INTERVAL '2 seconds'
-          AND NOW() + INTERVAL '2 seconds'
+        WHERE schedule_time BETWEEN TIMEZONE('Asia/Kolkata', NOW()) - INTERVAL '2 seconds'
+                              AND TIMEZONE('Asia/Kolkata', NOW()) + INTERVAL '2 seconds'
         ORDER BY pairing_code, schedule_time DESC
       )
-      SELECT pairing_code, "  actions", 
-        TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
+      SELECT pairing_code, "  actions", TO_CHAR(schedule_time AT TIME ZONE 'Asia/Kolkata', 'HH24:MI:SS') AS schedule_time
       FROM latest_schedule;
-    `);
+      `
+    );
 
-    if (schedules.length === 0) return;
+    if (schedules.length === 0) {
+  
+      return;
+    }
 
-    // Process schedules
-    for (const { pairing_code, "  actions": actions, schedule_time } of schedules) {
-      const now = Date.now();
-      if (lastTriggeredTime[pairing_code] && now - lastTriggeredTime[pairing_code] < 2000) {
+   
+
+    // Process each schedule and trigger the servo
+    for (const { pairing_code, "  actions": action, schedule_time } of schedules) {
+      // Skip if the action is already performed
+      if (lastServoState[pairing_code] === action.toUpperCase()) {
+      
         continue;
       }
 
-      console.log(`🚀 Triggering ${pairing_code} to ${actions} (Scheduled at ${schedule_time})`);
-      const payload = { pairingCode: pairing_code, state: actions.toUpperCase() };
+      console.log(`🚀 Triggering servo for ${pairing_code} to ${action} (Scheduled at ${schedule_time})`);
 
+      // Prepare the payload for /servo
+      const payload = {
+        pairingCode: pairing_code,
+        state: action.toUpperCase(),
+      };
+
+     
+
+      // Send the request to the ESP32
       try {
         const response = await fetch('https://pp-kcfa.onrender.com/servo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+
         const responseData = await response.json();
         console.log('✅ ESP32 Response:', responseData);
-        lastTriggeredTime[pairing_code] = now;
+
+        // Store the last known state to prevent redundant calls
+        lastServoState[pairing_code] = action.toUpperCase();
       } catch (error) {
-        console.error(`❌ ${pairing_code} Failed:`, error);
+        console.error(`❌ Error sending request for ${pairing_code}:`, error);
       }
     }
   } catch (error) {
     console.error('❌ Error in checkAndTriggerServos:', error);
   }
 };
+
 // Run the schedule checker every 2 seconds
 setInterval(checkAndTriggerServos, 2000);
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
