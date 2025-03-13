@@ -509,19 +509,21 @@ app.post('/device-name', async (req, res) => {
 });
 
 
-//app.post("/isOnline", async (req, res) => {
- //   const {pairingCode } = req.body;
+app.post("/isOnline", async (req, res) => {
+  const { pairingCode } = req.body;
 
-  //  if (!pairingCode) {
-    //    return res.status(400).json({ error: '' });
-  //  }
-  //   if (espPairingCodes.includes(String(pairingCode))) {
-   //     return res.json({ message:'ONLINE'});
-   //  }
-   //  else{
-    //    return res.json({ message:'ONLINE'});
-   //  }});
-  
+  // Check if pairingCode is provided
+  if (!pairingCode) {
+    return res.status(400).json({ error: 'Missing pairing code' }); // Add error message
+  }
+
+  // Check if pairingCode is valid
+  if (espPairingCodes.includes(String(pairingCode))) {
+    return res.json({ state: 'ONLINE' }); // Valid code: device is online
+  } else {
+    return res.json({ state: 'OFFLINE' }); // Invalid code: device is offline
+  }
+});
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
