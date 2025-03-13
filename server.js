@@ -507,6 +507,21 @@ app.post('/device-name', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
+app.post("/isOnline", async (req, res) => {
+    const {pairingCode } = req.body;
+
+    if (!pairingCode) {
+        return res.status(400).json({ error: '' });
+    }
+     if (espPairingCodes.includes(String(pairingCode))) {
+        return res.status(500).json({'ONLINE'});
+     }
+     else{
+        return res.status(500).json({'OFFLINE'});
+     }});
+  
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
