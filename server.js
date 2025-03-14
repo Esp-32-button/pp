@@ -82,7 +82,7 @@ app.post('/register', async (req, res) => {
         // Insert email into pairs table with paired_device set to NULL
         await pool.query('INSERT INTO pairs (email, paired_device) VALUES ($1, NULL)', [email]);
 
-       await pool.query('INSERT INTO devices (email, paired_device) VALUES ($1, NULL)', [email]);
+      
 
         res.status(201).send({ message: 'User registered successfully' });
     } catch (err) {
@@ -199,11 +199,11 @@ app.post("/validate", async (req, res) => {
                 WHERE email = $2`,
                 [pairingCode, email]
             );
-              await pool.query(  `UPDATE devices 
-                SET paired_device =  $1
-                WHERE email = $2`,
-                [pairingCode, email]
-                                  );
+            await pool.query(
+  `INSERT INTO devices (paired_device, email) 
+   VALUES ($1, $2)`,
+  [pairingCode, email]
+);
             res.json({ message: 'Device paired successfully' });
         } catch (error) {
             console.error("Error pairing device:", error);
