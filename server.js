@@ -374,18 +374,18 @@ app.post("/isOnline", async (req, res) => {
 
 // Update Device Name Endpoint
 app.post('/update-device-name', async (req, res) => {
-  const { pairingCode, deviceName } = req.body;
+  const { email, pairingCode, deviceName } = req.body;
 
   try {
     // Update using array containment operator
-    const result = await pool.query(
-      `UPDATE pairs 
-       SET device_name = $1 
-       WHERE paired_device @> ARRAY[$2]::VARCHAR[] 
-       RETURNING *`,
-      [deviceName, pairingCode]
-    );
-
+ const result = await pool.query(
+  `UPDATE pairs 
+   SET device_name = $1 
+   WHERE paired_device @> ARRAY[$2]::VARCHAR[] 
+   AND email = $3
+   RETURNING *`,
+  [deviceName, pairingCode, email]
+);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Device not found' });
     }
