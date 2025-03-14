@@ -375,16 +375,13 @@ app.post("/isOnline", async (req, res) => {
 // Update Device Name Endpoint
 app.post('/update-device-name', async (req, res) => {
   const { pairingCode, deviceName } = req.body;
-  
-  if (!pairingCode || !deviceName) {
-    return res.status(400).json({ error: 'Missing parameters' });
-  }
 
   try {
+    // Update using array containment operator
     const result = await pool.query(
       `UPDATE pairs 
        SET device_name = $1 
-       WHERE paired_device @> ARRAY[$2]::TEXT[]
+       WHERE paired_device @> ARRAY[$2]::VARCHAR[] 
        RETURNING *`,
       [deviceName, pairingCode]
     );
@@ -394,15 +391,15 @@ app.post('/update-device-name', async (req, res) => {
     }
 
     res.json({
-      message: 'Name updated',
+      message: 'Name updated successfully',
       device: result.rows[0]
     });
 
   } catch (error) {
     console.error('Database error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Database operation failed',
-      details: error.message // Send actual error to client
+      details: error.message
     });
   }
 });
