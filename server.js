@@ -372,6 +372,48 @@ app.post("/isOnline", async (req, res) => {
 
 
 
+// Update Device Name Endpoint
+app.post('/update-device-name', async (req, res) => {
+  const { pairingCode, deviceName } = req.body;
+
+  // Validate input
+  if (!pairingCode || !deviceName) {
+    return res.status(400).json({ 
+      error: 'Both pairingCode and deviceName are required' 
+    });
+  }
+
+  try {
+    // Update the device name in the database
+    const result = await pool.query(
+      `UPDATE pairs 
+       SET device_name = $1 
+       WHERE $2 = ANY(paired_device)
+       RETURNING *`,
+      [deviceName, pairingCode]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ 
+        error: 'Device not found with provided pairing code' 
+      });
+    }
+
+    res.json({ 
+      message: 'Device name updated successfully',
+      updatedDevice: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error updating device name:', error);
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+});
+
+
+
 app.post('/schedule', async (req, res) => {
   const { pairingCode, scheduleTime, action, createdAt } = req.body;
 
