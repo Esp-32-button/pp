@@ -378,9 +378,9 @@ app.post('/update-device-name', async (req, res) => {
 
   try {
     // Update using array containment operator
- const result = await pool.query(
+const result = await pool.query(
   `UPDATE pairs 
-   SET device_name = $1 
+   SET device_name = array_append(device_name, $1) 
    WHERE paired_device @> ARRAY[$2]::VARCHAR[] 
    AND email = $3
    RETURNING *`,
