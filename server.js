@@ -82,6 +82,8 @@ app.post('/register', async (req, res) => {
         // Insert email into pairs table with paired_device set to NULL
         await pool.query('INSERT INTO pairs (email, paired_device) VALUES ($1, NULL)', [email]);
 
+       await pool.query('INSERT INTO devices (email, paired_device) VALUES ($1, NULL)', [email]);
+
         res.status(201).send({ message: 'User registered successfully' });
     } catch (err) {
         console.error('Error during registration:', err);
