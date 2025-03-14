@@ -199,10 +199,12 @@ app.post("/validate", async (req, res) => {
                 WHERE email = $2`,
                 [pairingCode, email]
             );
-            await pool.query(
-  `INSERT INTO devices (paired_device, email) 
-   VALUES ($1, $2)`,
-  [pairingCode, email]
+     const result = await pool.query(
+  `UPDATE pairs 
+   SET paired_devices = jsonb_set(paired_devices, $1, $2)
+   WHERE email = $3
+   RETURNING *`,
+  [`{${pairingCode}}`, JSON.stringify(deviceName), email]
 );
             res.json({ message: 'Device paired successfully' });
         } catch (error) {
