@@ -302,19 +302,29 @@ app.get('/get-devices', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Simple query to get paired devices from the pairs table
-    const result = await pool.query(
-      'SELECT email, paired_device FROM pairs WHERE email = $1',
-      [email]
-    );
+    // Get devices with their names from both tables
+    const result = await pool.query(`
+      SELECT p.email, p.paired_device, d.device_name 
+      FROM pairs p
+      LEFT JOIN devices d 
+        ON p.email = d.email 
+        AND p.paired_device = d.paired_device
+      WHERE p.email = $1
+    `, [email]);
 
-    res.json(result.rows);
+    // Format the response with device names
+    const devices = result.rows.map(row => ({
+      email: row.email,
+      paired_device: row.paired_device,
+      device_name: row.device_name || null
+    }));
+
+    res.json(devices);
   } catch (error) {
     console.error('Error fetching devices:', error);
     res.status(500).json({ error: 'Failed to fetch devices' });
   }
 });
-
 app.post('/unpair', async (req, res) => {
   try {
     const { device_id, email } = req.body;
