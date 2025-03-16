@@ -303,15 +303,17 @@ app.get('/get-devices', async (req, res) => {
     }
 
     // Get devices with their names from both tables
-    const result = await pool.query(`
-      SELECT p.email, p.paired_device, d.device_name 
-      FROM pairs p
-      LEFT JOIN devices d 
-        ON p.email = d.email 
-        AND p.paired_device = d.paired_device
-      WHERE p.email = $1
-    `, [email]);
-
+   const result = await pool.query(`
+  SELECT 
+    p.email,
+    p.paired_device,
+    COALESCE(d.device_name, 'Device ' || p.paired_device) AS device_name
+  FROM pairs p
+  LEFT JOIN devices d 
+    ON p.email = d.email 
+    AND p.paired_device = d.paired_device
+  WHERE p.email = $1
+`, [email]);
     // Format the response with device names
     const devices = result.rows.map(row => ({
       email: row.email,
