@@ -304,7 +304,7 @@ app.get('/get-devices', async (req, res) => {
 
     // Get devices with their names from both tables
  const result = await pool.query(
-      `SELECT email, paired_device, device_name 
+      `SELECT email, paired_device, device_name, reversed 
        FROM devices 
        WHERE email = $1`,
       [email]
@@ -366,6 +366,37 @@ app.post('/unpair', async (req, res) => {
   }
 });
 
+app.post('/update-reverse', async (req, res) => {
+  try {
+    const { pairingCode, reversed } = req.body;
+
+    if (!pairingCode || typeof reversed !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid request' });
+    }
+
+    const updateResult = await pool.query(
+      `UPDATE devices 
+       SET reversed = $1 
+       WHERE paired_device = $2 
+       RETURNING *`,
+      [reversed, pairingCode]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json({ 
+      success: true,
+      reversed: updateResult.rows[0].reversed 
+    });
+  } catch (error) {
+    console.error('POST /update-reverse error:', error);
+    res.status(500).json({ error: 'Failed to update reverse state' });
+  }
+});
+
+
 
 app.post("/isOnline", async (req, res) => {
   const { pairingCode } = req.query;
@@ -413,6 +444,8 @@ const result = await pool.query(
     });
   }
 });
+
+
 
 
 
