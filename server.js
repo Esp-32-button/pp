@@ -370,8 +370,11 @@ app.post('/update-reverse', async (req, res) => {
   try {
     const { pairingCode, reversed } = req.body;
 
-    if (!pairingCode || typeof reversed !== 'boolean') {
-      return res.status(400).json({ error: 'Invalid request' });
+    // Validate input
+    if (!pairingCode || !['yes', 'no'].includes(reversed)) {
+      return res.status(400).json({ 
+        error: 'Invalid request. reversed must be "yes" or "no"' 
+      });
     }
 
     const updateResult = await pool.query(
