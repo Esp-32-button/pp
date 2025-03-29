@@ -368,7 +368,7 @@ app.post('/unpair', async (req, res) => {
 
 app.post('/update-reverse', async (req, res) => {
   try {
-    const { pairingCode, reversed } = req.body;
+    const { email, pairingCode, reversed } = req.body;
 
     // Validate input
     if (!pairingCode || !['yes', 'no'].includes(reversed)) {
@@ -380,9 +380,10 @@ app.post('/update-reverse', async (req, res) => {
     const updateResult = await pool.query(
       `UPDATE devices 
        SET reversed = $1 
-       WHERE paired_device = $2 
+       WHERE paired_device = $2 and
+       email = $3
        RETURNING *`,
-      [reversed, pairingCode]
+      [reversed, pairingCode, email]
     );
 
     if (updateResult.rowCount === 0) {
