@@ -465,6 +465,31 @@ const result = await pool.query(
 
 
 
+// New endpoint to get current mode
+app.get('/get-mode', async (req, res) => {
+  try {
+    const { pairingCode } = req.query;
+
+    // Query database for current mode
+    const result = await pool.query(
+      'SELECT mode FROM devices WHERE pairing_code = $1 AND email = $2',
+      [pairingCode, email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json({ 
+      mode: result.rows[0].mode 
+    });
+    
+  } catch (error) {
+    console.error('GET mode error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 
 app.post('/schedule', async (req, res) => {
