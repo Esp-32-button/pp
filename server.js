@@ -382,7 +382,7 @@ app.post('/update-reverse', async (req, res) => {
 
 app.post('/set-angle', async (req, res) => {
   try {
-    const { email, pairingCode, angle } = req.body;
+    const { email, pairingCode, mode } = req.body;
 
     // Validate input
     if (!pairingCode || typeof angle !== 'number' || angle < 0 || angle > 180) {
@@ -393,7 +393,7 @@ app.post('/set-angle', async (req, res) => {
 
     const updateResult = await pool.query(
       `UPDATE devices 
-       SET angle = $1 
+       SET mode = $1 
        WHERE paired_device = $2 
          AND email = $3
        RETURNING *`,
