@@ -472,7 +472,7 @@ app.get('/get-mode', async (req, res) => {
 
     // Query database for current mode
     const result = await pool.query(
-      'SELECT mode FROM devices WHERE pairing_code = $1 AND email = $2',
+      'SELECT mode FROM devices WHERE paired_device = $1 AND email = $2',
       [pairingCode, email]
     );
 
