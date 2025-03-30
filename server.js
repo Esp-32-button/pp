@@ -221,32 +221,39 @@ await pool.query(
 
 
 
-let espServoState = {}; // Track servo state for each ESP32
+let espServoState = {}; // Now stores { [pairingCode]: { state: "ON/OFF", angle: number } }
 
-// POST request to set servo state for a specific device
+// POST request to set servo state and angle
 app.post("/servo", async (req, res) => {
-  const { pairingCode, state } = req.body; // Expecting pairingCode and state
-  try{
-  if (state !== "ON" && state !== "OFF") {
-    return res.status(400).json({ error: "Invalid state" });
-  }
+  const { pairingCode, state, angle } = req.body;
+  try {
+    // Validate inputs
+    if (!pairingCode) {
+      return res.status(400).json({ error: "Device ID (pairingCode) is required" });
+    }
+    if (state !== "ON" && state !== "OFF") {
+      return res.status(400).json({ error: "Invalid state - must be ON or OFF" });
+    }
+    if (typeof angle !== 'number' || angle < 0 || angle > 180) {
+      return res.status(400).json({ error: "Invalid angle - must be between 0-180" });
+    }
 
-  if (!pairingCode) {
-    return res.status(400).json({ error: "Device ID (pairingCode) is required" });
+    // Update device state and angle
+    espServoState[pairingCode] = { state, angle };
+    console.log(`Updated device ${pairingCode}:`, espServoState[pairingCode]);
+    
+    res.json({ 
+      message: `Servo updated`,
+      state,
+      angle
+    });
+  } catch (error) {
+    console.error("POST /servo error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
+});
 
-  
-  // Set the servo state for the specific device
-  espServoState[pairingCode] = state;
-  console.log(`Updated state for device ${pairingCode}: ${state}`); 
-  res.json({ message: `Servo on device ${pairingCode} set to ${state}` });
-  
-  }
- catch(error){
-   
- }});
-
-// GET request to fetch servo state for a specific device
+// GET request to fetch servo state and angle
 app.get("/servo", (req, res) => {
   const { pairingCode } = req.query;
   
@@ -254,15 +261,18 @@ app.get("/servo", (req, res) => {
     return res.status(400).json({ error: "Device ID (pairingCode) is required" });
   }
 
-  // Log received pairingCode
-  console.log(`Received GET request for pairingCode: ${pairingCode}`);
-  
-  const state = espServoState[pairingCode];
-  if (!state) {
-    return res.status(404).json({ error: "Device not found" });
+  // Initialize with defaults if device doesn't exist
+  if (!espServoState[pairingCode]) {
+    espServoState[pairingCode] = {
+      state: "OFF",
+      angle: 90 // Default angle
+    };
+    console.log(`Initialized new device ${pairingCode} with defaults`);
   }
 
-  res.json({ state });
+  // Return both state and angle
+  const { state, angle } = espServoState[pairingCode];
+  res.json({ state, angle });
 });
 
 
@@ -397,6 +407,41 @@ app.post('/update-reverse', async (req, res) => {
   } catch (error) {
     console.error('POST /update-reverse error:', error);
     res.status(500).json({ error: 'Failed to update reverse state' });
+  }
+});
+
+
+app.post('/set-angle', async (req, res) => {
+  try {
+    const { email, pairingCode, angle } = req.body;
+
+    // Validate input
+    if (!pairingCode || typeof angle !== 'number' || angle < 0 || angle > 180) {
+      return res.status(400).json({ 
+        error: 'Invalid request. Angle must be a number between 0-180' 
+      });
+    }
+
+    const updateResult = await pool.query(
+      `UPDATE devices 
+       SET angle = $1 
+       WHERE paired_device = $2 
+         AND email = $3
+       RETURNING *`,
+      [angle, pairingCode, email]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json({ 
+      success: true,
+      angle: updateResult.rows[0].angle 
+    });
+  } catch (error) {
+    console.error('POST /set-angle error:', error);
+    res.status(500).json({ error: 'Failed to update servo angle' });
   }
 });
 
