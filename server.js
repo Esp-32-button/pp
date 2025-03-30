@@ -397,7 +397,7 @@ app.post('/set-angle', async (req, res) => {
        WHERE paired_device = $2 
          AND email = $3
        RETURNING *`,
-      [angle, pairingCode, email]
+      [mode, pairingCode, email]
     );
 
     if (updateResult.rowCount === 0) {
