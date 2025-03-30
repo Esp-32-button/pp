@@ -47,26 +47,6 @@ pool.on('error', (err, client) => {
 // Initial connection attempt
 connectToDatabase();
 
-// Handle client-specific errors (this is the main issue)
-pool.on('connect', client => {
-  client.on('error', (err) => {
-    console.error('PostgreSQL client error:', err);
-    // Optionally, you can implement retry logic here if necessary
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, closing PostgreSQL connection...');
-  pool.end();  // Close the pool gracefully
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, closing PostgreSQL connection...');
-  pool.end();  // Close the pool gracefully
-  process.exit(0);
-});
 
 const SECRET_KEY = '/cTFigjrKOOlRA7S1bI1Pxk809ZAN4gi5FJ3gmc4jKcQjfJST27NeZv6n8OJP6sU0+N7JJUAkc+DdsXwOIkQaw=='; // Use a secure key
 
