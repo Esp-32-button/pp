@@ -468,7 +468,7 @@ const result = await pool.query(
 // New endpoint to get current mode
 app.get('/get-mode', async (req, res) => {
   try {
-    const { pairingCode } = req.query;
+    const { pairingCode, email } = req.query;
 
     // Query database for current mode
     const result = await pool.query(
