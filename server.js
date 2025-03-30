@@ -385,7 +385,7 @@ app.post('/set-angle', async (req, res) => {
     const { email, pairingCode, mode } = req.body;
 
     // Validate input
-    if (!pairingCode || typeof angle !== 'number' || angle < 0 || angle > 180) {
+    if (!pairingCode || typeof mode !== 'number' || mode < 0 || mode > 180) {
       return res.status(400).json({ 
         error: 'Invalid request. Angle must be a number between 0-180' 
       });
