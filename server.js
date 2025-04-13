@@ -327,7 +327,7 @@ app.post('/unpair', async (req, res) => {
       `UPDATE devices
        SET paired_device = null
        WHERE email = $2
-       AND $1 = ANY(paired_device)
+       AND paired_device = $1
        RETURNING paired_device`,
       [device_id, email]
     );
