@@ -325,7 +325,7 @@ app.post('/unpair', async (req, res) => {
 
     const result1 = await pool.query(
       `UPDATE devices
-       SET paired_device = array_remove(paired_device, $1)
+       SET paired_device = null
        WHERE email = $2
        AND $1 = ANY(paired_device)
        RETURNING paired_device`,
