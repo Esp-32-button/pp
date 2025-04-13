@@ -322,6 +322,16 @@ app.post('/unpair', async (req, res) => {
       [device_id, email]
     );
 
+
+    const result = await pool.query(
+      `UPDATE devices
+       SET paired_device = array_remove(paired_device, $1)
+       WHERE email = $2
+       AND $1 = ANY(paired_device)
+       RETURNING paired_device`,
+      [device_id, email]
+    );
+
     if (result.rowCount === 0) {
       return res.status(404).json({
         success: false,
